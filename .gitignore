@@ -1,7 +1,16 @@
-*.DS_Store
-*.elf
-*.map
-*.ps-exe
-*.dep
-*.o
-/third_party
+# Do not include any hidden metadata saved by apps and the OS.
+desktop.ini
+.DS_Store
+.vscode/
+
+# Do not include any built or cached files.
+build/
+env/
+.cache/
+__pycache__/
+*.pyc
+*.pyo
+
+# Do not include user-specific workspace and configuration files.
+*.code-workspace
+CMakeUserPresets.json
