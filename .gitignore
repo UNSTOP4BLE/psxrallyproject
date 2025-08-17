@@ -1,0 +1,7 @@
+*.DS_Store
+*.elf
+*.map
+*.ps-exe
+*.dep
+*.o
+/third_party
