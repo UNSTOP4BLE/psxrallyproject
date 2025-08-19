@@ -115,26 +115,26 @@ void Renderer::drawTexRect(TextureInfo &tex, Pos pos) {
 	ptr[4] = gp0_xy(tex.width, tex.height);
 }
 
-void Renderer::uploadTexture(TextureInfo *info, const void *data, int x, int y, int width, int height) {
+void Renderer::uploadTexture(TextureInfo &info, const void *data, int x, int y, int width, int height) {
 	assert((width <= 256) && (height <= 256));
 
 	sendVRAMData(data, x, y, width, height);
 	waitForDMADone();
 
-	info->page   = gp0_page(
+	info.page   = gp0_page(
 		x /  64,
 		y / 256,
 		GP0_BLEND_SEMITRANS,
 		GP0_COLOR_16BPP
 	);
-	info->clut   = 0;
-	info->u      = (uint8_t)  (x %  64);
-	info->v      = (uint8_t)  (y % 256);
-	info->width  = (uint16_t) width;
-	info->height = (uint16_t) height;
+	info.clut   = 0;
+	info.u      = (uint8_t)  (x %  64);
+	info.v      = (uint8_t)  (y % 256);
+	info.width  = (uint16_t) width;
+	info.height = (uint16_t) height;
 }
 
-void Renderer::uploadIndexedTexture(TextureInfo *info, const void *image, const void *palette, int imageX, int imageY, int paletteX, int paletteY, int width, int height, GP0ColorDepth colorDepth) {
+void Renderer::uploadIndexedTexture(TextureInfo &info, const void *image, const void *palette, int imageX, int imageY, int paletteX, int paletteY, int width, int height, GP0ColorDepth colorDepth) {
 	assert((width <= 256) && (height <= 256));
 
 	int numColors    = (colorDepth == GP0_COLOR_8BPP) ? 256 : 16;
@@ -147,17 +147,17 @@ void Renderer::uploadIndexedTexture(TextureInfo *info, const void *image, const 
 	sendVRAMData(palette, paletteX, paletteY, numColors, 1);
 	waitForDMADone();
 
-	info->page   = gp0_page(
+	info.page   = gp0_page(
 		imageX /  64,
 		imageY / 256,
 		GP0_BLEND_SEMITRANS,
 		colorDepth
 	);
-	info->clut   = gp0_clut(paletteX / 16, paletteY);
-	info->u      = (uint8_t)  ((imageX %  64) * widthDivider);
-	info->v      = (uint8_t)   (imageY % 256);
-	info->width  = (uint16_t) width;
-	info->height = (uint16_t) height;
+	info.clut   = gp0_clut(paletteX / 16, paletteY);
+	info.u      = (uint8_t)  ((imageX %  64) * widthDivider);
+	info.v      = (uint8_t)   (imageY % 256);
+	info.width  = (uint16_t) width;
+	info.height = (uint16_t) height;
 }
 
 void Renderer::waitForGP0Ready(void) {

@@ -43,18 +43,17 @@ public:
 	void drawRect(Rect rect, int r, int g, int b);
 	void drawTexRect(TextureInfo &tex, Pos pos);
 
-	void uploadTexture(TextureInfo *info, const void *data, int x, int y, int width, int height);
-	void uploadIndexedTexture(TextureInfo *info, const void *image, const void *palette, int imageX, int imageY, int paletteX, int paletteY, int width, int height, GP0ColorDepth colorDepth);
+	void uploadTexture(TextureInfo &info, const void *data, int x, int y, int width, int height);
+	void uploadIndexedTexture(TextureInfo &info, const void *image, const void *palette, int imageX, int imageY, int paletteX, int paletteY, int width, int height, GP0ColorDepth colorDepth);
 
-	uint32_t *ptr;
-	DMAChain *chain;
-	int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
-	int bufferY = 0;
-	uint32_t *allocatePacket(DMAChain *chain, int zIndex, int numCommands);
 private:
+	int bufferX;
+	int bufferY;
 	bool usingSecondFrame = false;
 	int frameCounter = 0;
 	DMAChain dmaChains[2];
+	DMAChain *chain;
+	uint32_t *ptr;
 
 	void waitForGP0Ready(void);
 	void waitForDMADone(void);
@@ -63,5 +62,6 @@ private:
 	void sendLinkedList(const void *data);
 	void sendVRAMData(const void *data, int x, int y, int width, int height);
 	void clearOrderingTable(uint32_t *table, int numEntries);
+	uint32_t *allocatePacket(DMAChain *chain, int zIndex, int numCommands);
 
 };

@@ -92,7 +92,7 @@ int main(int argc, const char **argv) {
 	TextureInfo texture;
 
 	renderer.uploadTexture(
-		&texture,
+		texture,
 		textureData,
 		SCREEN_WIDTH * 2,
 		0,
