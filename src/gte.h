@@ -8,21 +8,11 @@
 // bits long). We'll define this unit value to make their handling easier.
 #define ONE (1 << 12)
 
-typedef struct {
+struct Face {
 	uint8_t  vertices[4];
 	uint32_t color;
-} Face;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include "gte.h"
+};
 
 void setupGTE(int width, int height);
 void multiplyCurrentMatrixByVectors(GTEMatrix *output);
 void rotateCurrentMatrix(int yaw, int pitch, int roll);
-
-#ifdef __cplusplus
-}
-#endif

@@ -34,6 +34,10 @@
 #define NUM_CUBE_VERTICES 8
 #define NUM_CUBE_FACES    6
 
+//spicy texture
+extern const uint8_t textureData[];
+
+/*
 static const GTEVector16 cubeVertices[NUM_CUBE_VERTICES] = {
 	{ .x = -32, .y = -32, .z = -32 },
 	{ .x =  32, .y = -32, .z = -32 },
@@ -67,52 +71,46 @@ static const Face cubeFaces[NUM_CUBE_FACES] = {
 	{ .vertices = { 6, 4, 2, 0 }, .color = 0xff00ff },
 	{ .vertices = { 5, 7, 1, 3 }, .color = 0xffff00 }
 };
-
+*/
 int main(int argc, const char **argv) {
 	initSerialIO(115200);
 
+	Renderer renderer;
+
 	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
 		puts("Using PAL mode");
-		setupGPU(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
+		renderer.init(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
 	} else {
 		puts("Using NTSC mode");
-		setupGPU(GP1_MODE_NTSC, SCREEN_WIDTH, SCREEN_HEIGHT);
+		renderer.init(GP1_MODE_NTSC, SCREEN_WIDTH, SCREEN_HEIGHT);
 	}
 
 	setupGTE(SCREEN_WIDTH, SCREEN_HEIGHT);
 
-	DMA_DPCR |= 0
-		| DMA_DPCR_CH_ENABLE(DMA_GPU)
-		| DMA_DPCR_CH_ENABLE(DMA_OTC);
 
-	GPU_GP1 = gp1_dmaRequestMode(GP1_DREQ_GP0_WRITE);
-	GPU_GP1 = gp1_dispBlank(false);
+	// Load the texture, placing it next to the two framebuffers in VRAM.
+	TextureInfo texture;
 
-	DMAChain dmaChains[2];
-	bool     usingSecondFrame = false;
-	int      frameCounter     = 0;
+	renderer.uploadTexture(
+		&texture,
+		textureData,
+		SCREEN_WIDTH * 2,
+		0,
+		32,
+		32
+	);
 
 	while(1) {
-		int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
-		int bufferY = 0;
-
-		DMAChain *chain  = &dmaChains[usingSecondFrame];
-		usingSecondFrame = !usingSecondFrame;
-
-		uint32_t *ptr;
-
-		GPU_GP1 = gp1_fbOffset(bufferX, bufferY);
-
-		clearOrderingTable(chain->orderingTable, ORDERING_TABLE_SIZE);
-		chain->nextPacket = chain->data;
-
+		renderer.clear();
 		// Reset the GTE's translation vector (added to each vertex) and
 		// transformation matrix, then modify the matrix to rotate the cube. The
 		// translation vector is used here to move the cube away from the camera
 		// so it can be seen.
+		/*
 		gte_setControlReg(GTE_TRX,   0);
 		gte_setControlReg(GTE_TRY,   0);
 		gte_setControlReg(GTE_TRZ, 128);
+		
 		gte_setRotationMatrix(
 			ONE,   0,   0,
 			  0, ONE,   0,
@@ -182,10 +180,27 @@ int main(int argc, const char **argv) {
 			bufferY + SCREEN_HEIGHT - 2
 		);
 		ptr[3] = gp0_fbOrigin(bufferX, bufferY);
+		*/
 
-		waitForGP0Ready();
-		waitForVSync();
-		sendLinkedList(&(chain->orderingTable)[ORDERING_TABLE_SIZE - 1]);
+
+
+		//spicy
+		// Use the texture we uploaded to draw a sprite (textured rectangle).
+		// Two separate commands have to be sent: a texpage command to apply our
+		// texpage attribute and disable dithering, followed by the actual
+		// rectangle drawing command.
+
+		/*
+*/
+
+		renderer.drawRect({10, 10, 20, 20}, 128, 0, 0);
+		renderer.drawRect({10, 20+20, 20, 20},   0, 128, 0);
+		renderer.drawRect({10, 50+20, 20, 20},   0,  0, 128);
+		renderer.drawTexRect(texture, {40, 10});
+		renderer.drawTexRect(texture, {40, 20+32});
+		
+		renderer.flip();
+
 	}
 
 	return 0;

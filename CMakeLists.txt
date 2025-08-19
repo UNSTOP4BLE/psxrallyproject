@@ -51,3 +51,9 @@ list(FILTER SRC_FILES EXCLUDE REGEX ".*/commonlib/.*")
 
 
 addPS1Executable(PSXRallyProject ${SRC_FILES})
+
+convertImage(
+	assets/texture.png 16
+	assets/textureData.dat
+)
+addBinaryFile(PSXRallyProject textureData "${PROJECT_BINARY_DIR}/assets/textureData.dat")

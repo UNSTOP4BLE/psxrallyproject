@@ -14,59 +14,54 @@
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 240
 
-typedef struct {
+struct DMAChain {
 	uint32_t data[CHAIN_BUFFER_SIZE];
 	uint32_t orderingTable[ORDERING_TABLE_SIZE];
 	uint32_t *nextPacket;
-} DMAChain;
+};
 
-typedef struct {
+struct TextureInfo {
 	uint8_t  u, v;
 	uint16_t width, height;
 	uint16_t page, clut;
-} TextureInfo;
+};
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+struct Rect {
+	int32_t x,y,w,h;
+};
 
-void setupGPU(GP1VideoMode mode, int width, int height);
-void waitForGP0Ready(void);
-void waitForDMADone(void);
-void waitForVSync(void);
+struct Pos {
+	int32_t x,y;
+};
 
-void sendLinkedList(const void *data);
-void sendVRAMData(
-	const void *data,
-	int        x,
-	int        y,
-	int        width,
-	int        height
-);
-void clearOrderingTable(uint32_t *table, int numEntries);
-uint32_t *allocatePacket(DMAChain *chain, int zIndex, int numCommands);
+class Renderer {
+public:
+	void init(GP1VideoMode mode, int width, int height);
+	
+	void clear(void);
+	void flip(void);
+	void drawRect(Rect rect, int r, int g, int b);
+	void drawTexRect(TextureInfo &tex, Pos pos);
 
-void uploadTexture(
-	TextureInfo *info,
-	const void  *data,
-	int         x,
-	int         y,
-	int         width,
-	int         height
-);
-void uploadIndexedTexture(
-	TextureInfo   *info,
-	const void    *image,
-	const void    *palette,
-	int           imageX,
-	int           imageY,
-	int           paletteX,
-	int           paletteY,
-	int           width,
-	int           height,
-	GP0ColorDepth colorDepth
-);
+	void uploadTexture(TextureInfo *info, const void *data, int x, int y, int width, int height);
+	void uploadIndexedTexture(TextureInfo *info, const void *image, const void *palette, int imageX, int imageY, int paletteX, int paletteY, int width, int height, GP0ColorDepth colorDepth);
 
-#ifdef __cplusplus
-}
-#endif
+	uint32_t *ptr;
+	DMAChain *chain;
+	int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
+	int bufferY = 0;
+	uint32_t *allocatePacket(DMAChain *chain, int zIndex, int numCommands);
+private:
+	bool usingSecondFrame = false;
+	int frameCounter = 0;
+	DMAChain dmaChains[2];
+
+	void waitForGP0Ready(void);
+	void waitForDMADone(void);
+	void waitForVSync(void);
+
+	void sendLinkedList(const void *data);
+	void sendVRAMData(const void *data, int x, int y, int width, int height);
+	void clearOrderingTable(uint32_t *table, int numEntries);
+
+};
