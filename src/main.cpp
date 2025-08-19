@@ -21,6 +21,7 @@
  * highly recommended.
  */
 
+#include "main.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -29,14 +30,15 @@
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
-
-#define NUM_CUBE_VERTICES 8
-#define NUM_CUBE_FACES    6
+App app;
 
 //spicy texture
 extern const uint8_t textureData[];
 
-// 8 vertices of a cube, centered at origin
+#define NUM_CUBE_VERTICES 8
+#define NUM_CUBE_FACES    12
+
+// Cube vertices (same as before)
 static const GTEVector16 cubeVertices[NUM_CUBE_VERTICES] = {
     { .x = -32, .y = -32, .z = -32 }, // 0
     { .x =  32, .y = -32, .z = -32 }, // 1
@@ -48,49 +50,86 @@ static const GTEVector16 cubeVertices[NUM_CUBE_VERTICES] = {
     { .x =  32, .y =  32, .z =  32 }  // 7
 };
 
-// 6 faces (each is a quad defined by 4 vertex indices)
-// Colors are just arbitrary RGB values for testing.
-static const Face cubeFaces[NUM_CUBE_FACES] = {
-    { .vertices = { 0, 1, 2, 3 }, .color = gp0_rgb(255,   0,   0) }, // back (red)
-    { .vertices = { 6, 7, 4, 5 }, .color = gp0_rgb(  0, 255,   0) }, // front (green)
-    { .vertices = { 4, 5, 0, 1 }, .color = gp0_rgb(  0,   0, 255) }, // bottom (blue)
-    { .vertices = { 7, 6, 3, 2 }, .color = gp0_rgb(255, 255,   0) }, // top (yellow)
-    { .vertices = { 6, 4, 2, 0 }, .color = gp0_rgb(255,   0, 255) }, // left (magenta)
-    { .vertices = { 5, 7, 1, 3 }, .color = gp0_rgb(  0, 255, 255) }  // right (cyan)
-};
 
-// Wrap it in a Model struct
-static const GFX::Model cubeModel = {
-    .vertices   = cubeVertices,
-    .numVertices = NUM_CUBE_VERTICES,
-    .faces      = cubeFaces,
-    .numFaces   = NUM_CUBE_FACES
-};
+static void handleInterrupt(void* arg0, void* arg1) {
+	auto app = reinterpret_cast<App *>(arg0);
+
+	if (acknowledgeInterrupt(IRQ_CDROM))
+		app->handleCDROMInterrupt();
+}
+
+void App::setupInterrupts(void) {
+	setInterruptHandler(handleInterrupt, this, nullptr);
+
+	IRQ_MASK = (1 << IRQ_CDROM); // enable the cdrom irq
+	cop0_enableInterrupts();
+}
+
+void App::handleCDROMInterrupt(void) {
+	// ...
+}
 
 int main(int argc, const char **argv) {
 	initSerialIO(115200);
-
-	GFX::Renderer renderer;
+	installExceptionHandler();
 
 	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
 		puts("Using PAL mode");
-		renderer.init(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
+		app.renderer.init(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
 	} else {
 		puts("Using NTSC mode");
-		renderer.init(GP1_MODE_NTSC, SCREEN_WIDTH, SCREEN_HEIGHT);
+		app.renderer.init(GP1_MODE_NTSC, SCREEN_WIDTH, SCREEN_HEIGHT);
 	}
 
-	setupGTE(SCREEN_WIDTH, SCREEN_HEIGHT);
+	GTE::setupGTE(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 
 	// Load the texture, placing it next to the two framebuffers in VRAM.
 	GFX::TextureInfo texture;
 
 	GFX::uploadTexture(texture, textureData, {SCREEN_WIDTH * 2, 0, 32, 32});
+	GFX::Face cubeFaces[NUM_CUBE_FACES] = {
+    // Back (red, flat)
+    { .vertices={0,1,2}, .color=gp0_rgb(255,0,0), .textured=false },
+    { .vertices={2,1,3}, .color=gp0_rgb(255,0,0), .textured=false },
 
+    // Front (textured)
+    { .vertices={6,7,4}, .u={0,31,0}, .v={0,0,31},
+      .texInfo={ .u=0, .v=0, .width=32, .height=32, .page=texture.page, .clut=texture.clut },
+      .textured=true
+    },
+    { .vertices={4,7,5}, .u={0,31,31}, .v={31,0,31},
+      .texInfo={ .u=0, .v=0, .width=32, .height=32, .page=texture.page, .clut=texture.clut },
+      .textured=true
+    },
+
+    // Bottom (blue, flat)
+    { .vertices={4,5,0}, .color=gp0_rgb(0,0,255), .textured=false },
+    { .vertices={0,5,1}, .color=gp0_rgb(0,0,255), .textured=false },
+
+    // Top (yellow, flat)
+    { .vertices={7,6,3}, .color=gp0_rgb(255,255,0), .textured=false },
+    { .vertices={3,6,2}, .color=gp0_rgb(255,255,0), .textured=false },
+
+    // Left (magenta, flat)
+    { .vertices={6,4,2}, .color=gp0_rgb(255,0,255), .textured=false },
+    { .vertices={2,4,0}, .color=gp0_rgb(255,0,255), .textured=false },
+
+    // Right (cyan, flat)
+    { .vertices={5,7,1}, .color=gp0_rgb(0,255,255), .textured=false },
+    { .vertices={1,7,3}, .color=gp0_rgb(0,255,255), .textured=false }
+};
+
+
+	GFX::Model cubeModel = {
+		.vertices    = cubeVertices,
+		.numVertices = NUM_CUBE_VERTICES,
+		.faces       = cubeFaces,
+		.numFaces    = NUM_CUBE_FACES
+	};
 	int x = 0;
 	while(1) {
-		renderer.beginFrame();
+		app.renderer.beginFrame();
 		// Reset the GTE's translation vector (added to each vertex) and
 		// transformation matrix, then modify the matrix to rotate the cube. The
 		// translation vector is used here to move the cube away from the camera
@@ -181,24 +220,21 @@ int main(int argc, const char **argv) {
 
 		/*
 */
-GFX::Pos screen[4] = { {100,50}, {132,50}, {132,82}, {100,82} }; // four corners
-GFX::Pos uv[4]     = { {0,0}, {32,0}, {32,32}, {0,32} };          // texture coords
-
-renderer.drawTexQuad(texture, screen[0], screen[1], screen[2], screen[3],
-                         uv[0], uv[1], uv[2], uv[3]);
+//GFX::XY screen[4] = { {100,50}, {132,50}, {132,82}, {100,82} }; // four corners
+//GFX::XY uv[4]     = { {0,0}, {32,0}, {32,32}, {0,32} };          // texture coords
 
 		x+= 10;
-    	renderer.drawModel(&cubeModel,
+    	app.renderer.drawModel(&cubeModel,
         	  0, 0, 0,                  // translation
               0, 90+x, 90);
 
-		renderer.drawRect({10, 10, 20, 20}, 128, 0, 0);
-		renderer.drawRect({10, 20+20, 20, 20},   0, 128, 0);
-		renderer.drawRect({10, 50+20, 20, 20},   0,  0, 128);
-		renderer.drawTexRect(texture, {40, 10});
-		renderer.drawTexRect(texture, {40, 20+32});
+		app.renderer.drawRect({10, 10, 20, 20}, 128, 0, 0);
+		app.renderer.drawRect({10, 20+20, 20, 20},   0, 128, 0);
+		app.renderer.drawRect({10, 50+20, 20, 20},   0,  0, 128);
+		app.renderer.drawTexRect(texture, {40, 10});
+		app.renderer.drawTexRect(texture, {40, 20+32});
 		
-		renderer.endFrame();
+		app.renderer.endFrame();
 	}
 
 	return 0;

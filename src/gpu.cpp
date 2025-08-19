@@ -107,25 +107,28 @@ void Renderer::drawRect(Rect rect, int r, int g, int b) {
 	ptr[2]        = gp0_xy(rect.w, rect.h);       // width and height
 }
 
-void Renderer::drawTexTri(TextureInfo &tex, Pos v0, Pos v1, Pos v2, Pos uv0, Pos uv1, Pos uv2) {
-   	// Draw first triangle
-    uint32_t *ptr = allocatePacket(0, 8);
-	ptr[0]        = gp0_texpage(tex.page, false, false); // set texture page and CLUT
-    ptr[1]        = gp0_rgb(128, 128, 128) | gp0_shadedTriangle(false, true, false);
-    ptr[2]        = gp0_xy(v0.x, v0.y);
-    ptr[3]        = gp0_uv(uv0.x, uv0.y, 0);
-    ptr[4]        = gp0_xy(v1.x, v1.y);
-    ptr[5]        = gp0_uv(uv1.x, uv1.y, tex.page);
-    ptr[6]        = gp0_xy(v2.x, v2.y);
-    ptr[7]        = gp0_uv(uv2.x, uv2.y, 0);
+void Renderer::drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int zIndex, uint32_t col) {
+    uint32_t *ptr = allocatePacket(zIndex, 8);
+    // Set texture page (where in VRAM this triangle samples from)
+    ptr[0] = gp0_texpage(tex.page, false, false);
+    // Primitive header (textured triangle, no transparency, no blending)
+    ptr[1] = col | gp0_shadedTriangle(false, true, false);
+
+    // Vertexes
+    ptr[2] = gp0_xy(v0.x, v0.y);
+    ptr[3] = gp0_uv(uv0.x, uv0.y, tex.clut);
+    ptr[4] = gp0_xy(v1.x, v1.y);
+    ptr[5] = gp0_uv(uv1.x, uv1.y, tex.clut);
+    ptr[6] = gp0_xy(v2.x, v2.y);
+    ptr[7] = gp0_uv(uv2.x, uv2.y, tex.clut);
 }
 
-void Renderer::drawTexQuad(TextureInfo &tex, Pos v0, Pos v1, Pos v2, Pos v3, Pos uv0, Pos uv1, Pos uv2, Pos uv3) {
-    drawTexTri(tex, v0, v1, v2, uv0, uv1, uv2);
-    drawTexTri(tex, v3, v0, v2, uv3, uv0, uv2);
+void Renderer::drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int zIndex, uint32_t col) {
+    drawTexTri(tex, v0, v1, v2, uv0, uv1, uv2, zIndex, col);
+    drawTexTri(tex, v3, v0, v2, uv3, uv0, uv2, zIndex, col);
 }
 
-void Renderer::drawTexRect(TextureInfo &tex, Pos pos) {
+void Renderer::drawTexRect(const TextureInfo &tex, XY pos) {
 	uint32_t *ptr = allocatePacket(0, 5);
 	ptr[0]        = gp0_texpage(tex.page, false, false);
 	ptr[1]        = gp0_rectangle(true, true, false);
@@ -134,54 +137,69 @@ void Renderer::drawTexRect(TextureInfo &tex, Pos pos) {
 	ptr[4]        = gp0_xy(tex.width, tex.height);
 }
 
-void Renderer::drawModel(const Model *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ) {
-    // Setup GTE transform
+void Renderer::drawModel(const Model *model,
+                         int tx, int ty, int tz,
+                         int rotX, int rotY, int rotZ) {
+    // Setup GTE transform (translation)
     gte_setControlReg(GTE_TRX, tx);
     gte_setControlReg(GTE_TRY, ty);
     gte_setControlReg(GTE_TRZ, tz);
 
+    // Identity rotation matrix
     gte_setRotationMatrix(
         ONE,   0,   0,
           0, ONE,   0,
           0,   0, ONE
     );
 
-    rotateCurrentMatrix(rotX, rotY, rotZ);
+    // Apply rotation
+    GTE::rotateCurrentMatrix(rotX, rotY, rotZ);
 
-    // Walk faces
     for (int i = 0; i < model->numFaces; i++) {
-        const Face *face = &model->faces[i];
+        const GFX::Face &face = model->faces[i];
 
-        // Transform first 3 vertices
-        gte_loadV0(&model->vertices[face->vertices[0]]);
-        gte_loadV1(&model->vertices[face->vertices[1]]);
-        gte_loadV2(&model->vertices[face->vertices[2]]);
-        gte_command(GTE_CMD_RTPT | GTE_SF);
+        // Load vertices into GTE
+        gte_loadV0(&model->vertices[face.vertices[0]]);
+        gte_loadV1(&model->vertices[face.vertices[1]]);
+        gte_loadV2(&model->vertices[face.vertices[2]]);
+        gte_command(GTE_CMD_RTPT | GTE_SF); // Rotate + project triangle
 
-        // Backface cull
+        // Backface culling
         gte_command(GTE_CMD_NCLIP);
         if (gte_getDataReg(GTE_MAC0) <= 0)
             continue;
 
-        uint32_t xy0 = gte_getDataReg(GTE_SXY0);
-
-        // Transform 4th vertex
-        gte_loadV0(&model->vertices[face->vertices[3]]);
-        gte_command(GTE_CMD_RTPS | GTE_SF);
-
-        // Depth average
-        gte_command(GTE_CMD_AVSZ4 | GTE_SF);
+        // Depth average for ordering table
+        gte_command(GTE_CMD_AVSZ3 | GTE_SF);
         int zIndex = gte_getDataReg(GTE_OTZ);
         if ((zIndex < 0) || (zIndex >= ORDERING_TABLE_SIZE))
             continue;
 
-        // Emit quad into renderer’s chain
-        uint32_t *ptr = allocatePacket(zIndex, 5);
-        ptr[0] = face->color | gp0_shadedQuad(false, false, false);
-        ptr[1] = xy0;
-        gte_storeDataReg(GTE_SXY0, 2 * 4, ptr);
-        gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
-        gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
+        // Screen-space XY
+        XY v0, v1, v2;
+        v0.x = (int16_t)(gte_getDataReg(GTE_SXY0) & 0xFFFF);
+        v0.y = (int16_t)(gte_getDataReg(GTE_SXY0) >> 16);
+        v1.x = (int16_t)(gte_getDataReg(GTE_SXY1) & 0xFFFF);
+        v1.y = (int16_t)(gte_getDataReg(GTE_SXY1) >> 16);
+        v2.x = (int16_t)(gte_getDataReg(GTE_SXY2) & 0xFFFF);
+        v2.y = (int16_t)(gte_getDataReg(GTE_SXY2) >> 16);
+
+        // Build UVs
+        XY uv0 = { face.u[0], face.v[0] };
+        XY uv1 = { face.u[1], face.v[1] };
+        XY uv2 = { face.u[2], face.v[2] };
+
+        if (face.textured) {
+            // Use texture info from face
+            drawTexTri(face.texInfo, v0, v1, v2, uv0, uv1, uv2, zIndex, face.color);
+        } else {
+            // Flat-shaded triangle
+            uint32_t *ptr = allocatePacket(zIndex, 4);
+            ptr[0] = face.color | gp0_shadedTriangle(false, false, false);
+            ptr[1] = gp0_xy(v0.x, v0.y);
+            ptr[2] = gp0_xy(v1.x, v1.y);
+            ptr[3] = gp0_xy(v2.x, v2.y);
+        }
     }
 }
 
@@ -222,7 +240,7 @@ void uploadTexture(TextureInfo &info, const void *data, Rect pos) {
 	info.height = (uint16_t) pos.h;
 }
 
-void uploadIndexedTexture(TextureInfo &info, const void *image, const void *palette, Pos palleteXY, Rect imgrect, GP0ColorDepth colorDepth) {
+void uploadIndexedTexture(TextureInfo &info, const void *image, const void *palette, XY palleteXY, Rect imgrect, GP0ColorDepth colorDepth) {
 	assert((imgrect.w <= 256) && (imgrect.h <= 256));
 
 	int numColors    = (colorDepth == GP0_COLOR_8BPP) ? 256 : 16;

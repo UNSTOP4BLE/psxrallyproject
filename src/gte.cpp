@@ -1,8 +1,9 @@
 #include "gte.h"
+#include "gpu.h"
 #include "ps1/cop0.h"
 #include "trig.h"
-#include "gpu.h"
 
+namespace GTE {
 void setupGTE(int width, int height) {
 	// Ensure the GTE, which is coprocessor 2, is enabled. MIPS coprocessors are
 	// enabled through the status register in coprocessor 0, which is always
@@ -99,4 +100,5 @@ void rotateCurrentMatrix(int yaw, int pitch, int roll) {
 		multiplyCurrentMatrixByVectors(&multiplied);
 		gte_loadRotationMatrix(&multiplied);
 	}
+}
 }
