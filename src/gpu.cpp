@@ -21,6 +21,15 @@
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
+namespace GFX {
+static void waitForGP0Ready(void);
+static void waitForDMADone(void);
+static void waitForVSync(void);
+static void sendLinkedList(const void *data);
+static void sendVRAMData(const void *data, Rect rect);
+static void clearOrderingTable(uint32_t *table, int numEntries);
+static uint32_t *allocatePacket(DMAChain *chain, int zIndex, int numCommands);
+
 void Renderer::init(GP1VideoMode mode, int width, int height) {
 	// Set the origin of the displayed framebuffer. These "magic" values,
 	// derived from the GPU's internal clocks, will center the picture on most
@@ -64,13 +73,13 @@ void Renderer::init(GP1VideoMode mode, int width, int height) {
 }
 
 void Renderer::clear(void) {
-	bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
-	bufferY = 0;
+	int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
+	int bufferY = 0;
 
 	chain  = &dmaChains[usingSecondFrame];
 	usingSecondFrame = !usingSecondFrame;
 	
-	ptr = nullptr;
+	uint32_t *ptr = nullptr;
 
 	GPU_GP1 = gp1_fbOffset(bufferX, bufferY);
 
@@ -100,84 +109,79 @@ void Renderer::flip(void) {
 }
 
 void Renderer::drawRect(Rect rect, int r, int g, int b) {
-	ptr = allocatePacket(chain, 0, 3);
-	ptr[0] = gp0_rgb(r, g, b) | gp0_rectangle(false, false, false); // solid, untextured
-	ptr[1] = gp0_xy(rect.x, rect.y);          // top-left corner
-	ptr[2] = gp0_xy(rect.w, rect.h);       // width and height
+	uint32_t *ptr = allocatePacket(chain, 0, 3);
+	ptr[0]        = gp0_rgb(r, g, b) | gp0_rectangle(false, false, false); // solid, untextured
+	ptr[1]        = gp0_xy(rect.x, rect.y);          // top-left corner
+	ptr[2]        = gp0_xy(rect.w, rect.h);       // width and height
 }
 
 void Renderer::drawTexRect(TextureInfo &tex, Pos pos) {
-	ptr    = allocatePacket(chain, 0, 5);
-	ptr[0] = gp0_texpage(tex.page, false, false);
-	ptr[1] = gp0_rectangle(true, true, false);
-	ptr[2] = gp0_xy(pos.x, pos.y);
-	ptr[3] = gp0_uv(tex.u, tex.v, 0);
-	ptr[4] = gp0_xy(tex.width, tex.height);
+	uint32_t *ptr = allocatePacket(chain, 0, 5);
+	ptr[0]        = gp0_texpage(tex.page, false, false);
+	ptr[1]        = gp0_rectangle(true, true, false);
+	ptr[2]        = gp0_xy(pos.x, pos.y);
+	ptr[3]        = gp0_uv(tex.u, tex.v, 0);
+	ptr[4]        = gp0_xy(tex.width, tex.height);
 }
 
-void Renderer::uploadTexture(TextureInfo &info, const void *data, int x, int y, int width, int height) {
-	assert((width <= 256) && (height <= 256));
+void uploadTexture(TextureInfo &info, const void *data, Rect pos) {
+	assert((pos.w <= 256) && (pos.h <= 256));
 
-	sendVRAMData(data, x, y, width, height);
+	sendVRAMData(data, pos);
 	waitForDMADone();
 
 	info.page   = gp0_page(
-		x /  64,
-		y / 256,
+		pos.x /  64,
+		pos.y / 256,
 		GP0_BLEND_SEMITRANS,
 		GP0_COLOR_16BPP
 	);
 	info.clut   = 0;
-	info.u      = (uint8_t)  (x %  64);
-	info.v      = (uint8_t)  (y % 256);
-	info.width  = (uint16_t) width;
-	info.height = (uint16_t) height;
+	info.u      = (uint8_t)  (pos.x %  64);
+	info.v      = (uint8_t)  (pos.y % 256);
+	info.width  = (uint16_t) pos.w;
+	info.height = (uint16_t) pos.h;
 }
 
-void Renderer::uploadIndexedTexture(TextureInfo &info, const void *image, const void *palette, int imageX, int imageY, int paletteX, int paletteY, int width, int height, GP0ColorDepth colorDepth) {
-	assert((width <= 256) && (height <= 256));
+void uploadIndexedTexture(TextureInfo &info, const void *image, const void *palette, Pos palleteXY, Rect imgrect, GP0ColorDepth colorDepth) {
+	assert((imgrect.w <= 256) && (imgrect.h <= 256));
 
 	int numColors    = (colorDepth == GP0_COLOR_8BPP) ? 256 : 16;
 	int widthDivider = (colorDepth == GP0_COLOR_8BPP) ?   2 :  4;
 
-	assert(!(paletteX % 16) && ((paletteX + numColors) <= 1024));
+	assert(!(palleteXY.x % 16) && ((palleteXY.x + numColors) <= 1024));
 
-	sendVRAMData(image, imageX, imageY, width / widthDivider, height);
+	sendVRAMData(image, {imgrect.x, imgrect.y, imgrect.w / widthDivider, imgrect.h});
 	waitForDMADone();
-	sendVRAMData(palette, paletteX, paletteY, numColors, 1);
+	sendVRAMData(palette, {palleteXY.x, palleteXY.y, numColors, 1});
 	waitForDMADone();
 
-	info.page   = gp0_page(
-		imageX /  64,
-		imageY / 256,
-		GP0_BLEND_SEMITRANS,
-		colorDepth
-	);
-	info.clut   = gp0_clut(paletteX / 16, paletteY);
-	info.u      = (uint8_t)  ((imageX %  64) * widthDivider);
-	info.v      = (uint8_t)   (imageY % 256);
-	info.width  = (uint16_t) width;
-	info.height = (uint16_t) height;
+	info.page   = gp0_page(imgrect.x / 64, imgrect.y / 256, GP0_BLEND_SEMITRANS, colorDepth);
+	info.clut   = gp0_clut(palleteXY.x / 16, palleteXY.y);
+	info.u      = (uint8_t)  ((imgrect.x %  64) * widthDivider);
+	info.v      = (uint8_t)   (imgrect.y % 256);
+	info.width  = (uint16_t) imgrect.w;
+	info.height = (uint16_t) imgrect.h;
 }
 
-void Renderer::waitForGP0Ready(void) {
+static void waitForGP0Ready(void) {
 	while (!(GPU_GP1 & GP1_STAT_CMD_READY))
 		__asm__ volatile("");
 }
 
-void Renderer::waitForDMADone(void) {
+static void waitForDMADone(void) {
 	while (DMA_CHCR(DMA_GPU) & DMA_CHCR_ENABLE)
 		__asm__ volatile("");
 }
 
-void Renderer::waitForVSync(void) {
+static void waitForVSync(void) {
 	while (!(IRQ_STAT & (1 << IRQ_VSYNC)))
 		__asm__ volatile("");
 
 	IRQ_STAT = ~(1 << IRQ_VSYNC);
 }
 
-void Renderer::sendLinkedList(const void *data) {
+static void sendLinkedList(const void *data) {
 	waitForDMADone();
 	assert(!((uint32_t) data % 4));
 
@@ -188,11 +192,11 @@ void Renderer::sendLinkedList(const void *data) {
 		| DMA_CHCR_ENABLE;
 }
 
-void Renderer::sendVRAMData(const void *data, int x, int y, int width, int height) {
+static void sendVRAMData(const void *data, Rect rect) {
 	waitForDMADone();
 	assert(!((uint32_t) data % 4));
 
-	size_t length = (width * height) / 2;
+	size_t length = (rect.w * rect.h) / 2;
 	size_t chunkSize, numChunks;
 
 	if (length < DMA_MAX_CHUNK_SIZE) {
@@ -207,8 +211,8 @@ void Renderer::sendVRAMData(const void *data, int x, int y, int width, int heigh
 
 	waitForGP0Ready();
 	GPU_GP0 = gp0_vramWrite();
-	GPU_GP0 = gp0_xy(x, y);
-	GPU_GP0 = gp0_xy(width, height);
+	GPU_GP0 = gp0_xy(rect.x, rect.y);
+	GPU_GP0 = gp0_xy(rect.w, rect.h);
 
 	DMA_MADR(DMA_GPU) = (uint32_t) data;
 	DMA_BCR (DMA_GPU) = chunkSize | (numChunks << 16);
@@ -218,7 +222,7 @@ void Renderer::sendVRAMData(const void *data, int x, int y, int width, int heigh
 		| DMA_CHCR_ENABLE;
 }
 
-void Renderer::clearOrderingTable(uint32_t *table, int numEntries) {
+static void clearOrderingTable(uint32_t *table, int numEntries) {
 	DMA_MADR(DMA_OTC) = (uint32_t) &table[numEntries - 1];
 	DMA_BCR (DMA_OTC) = numEntries;
 	DMA_CHCR(DMA_OTC) = 0
@@ -232,7 +236,7 @@ void Renderer::clearOrderingTable(uint32_t *table, int numEntries) {
 		__asm__ volatile("");
 }
 
-uint32_t *Renderer::allocatePacket(DMAChain *chain, int zIndex, int numCommands) {
+static uint32_t *allocatePacket(DMAChain *chain, int zIndex, int numCommands) {
 	uint32_t *ptr      = chain->nextPacket;
 	chain->nextPacket += numCommands + 1;
 
@@ -244,4 +248,5 @@ uint32_t *Renderer::allocatePacket(DMAChain *chain, int zIndex, int numCommands)
 	assert(chain->nextPacket < &(chain->data)[CHAIN_BUFFER_SIZE]);
 
 	return &ptr[1];
+}
 }

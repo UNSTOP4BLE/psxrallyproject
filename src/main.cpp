@@ -75,7 +75,7 @@ static const Face cubeFaces[NUM_CUBE_FACES] = {
 int main(int argc, const char **argv) {
 	initSerialIO(115200);
 
-	Renderer renderer;
+	GFX::Renderer renderer;
 
 	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
 		puts("Using PAL mode");
@@ -89,16 +89,9 @@ int main(int argc, const char **argv) {
 
 
 	// Load the texture, placing it next to the two framebuffers in VRAM.
-	TextureInfo texture;
+	GFX::TextureInfo texture;
 
-	renderer.uploadTexture(
-		texture,
-		textureData,
-		SCREEN_WIDTH * 2,
-		0,
-		32,
-		32
-	);
+	GFX::uploadTexture(texture, textureData, {SCREEN_WIDTH * 2, 0, 32, 32});
 
 	while(1) {
 		renderer.clear();
