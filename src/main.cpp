@@ -94,12 +94,12 @@ int main(int argc, const char **argv) {
     { .vertices={2,1,3}, .color=gp0_rgb(255,0,0), .textured=false },
 
     // Front (textured)
-    { .vertices={6,7,4}, .u={0,31,0}, .v={0,0,31},
-      .texInfo={ .u=0, .v=0, .width=32, .height=32, .page=texture.page, .clut=texture.clut },
+    { .vertices={6,7,4}, .u={0,32,0}, .v={0,0,32},
+      .texInfo=texture,
       .textured=true
     },
-    { .vertices={4,7,5}, .u={0,31,31}, .v={31,0,31},
-      .texInfo={ .u=0, .v=0, .width=32, .height=32, .page=texture.page, .clut=texture.clut },
+    { .vertices={4,7,5}, .u={0,32,32}, .v={32,0,32},
+      .texInfo=texture,
       .textured=true
     },
 
