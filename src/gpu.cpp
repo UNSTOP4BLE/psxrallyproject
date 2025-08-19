@@ -108,20 +108,17 @@ void Renderer::drawRect(Rect rect, int r, int g, int b) {
 }
 
 void Renderer::drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int zIndex, uint32_t col) {
-    uint32_t *ptr = allocatePacket(zIndex, 8);
-    // Set texture page (where in VRAM this triangle samples from)
-    ptr[0] = gp0_texpage(tex.page, false, false);
-    // Primitive header (textured triangle, no transparency, no blending)
+    uint32_t *ptr = allocatePacket(0, 8);
+    ptr[0] = gp0_texpage(tex.page, false, false); // texture page
     ptr[1] = col | gp0_shadedTriangle(false, true, false);
-
-    // Vertexes
     ptr[2] = gp0_xy(v0.x, v0.y);
-    ptr[3] = gp0_uv(uv0.x, uv0.y, tex.clut);
+    ptr[3] = gp0_uv(uv0.x, uv0.y, 0);
     ptr[4] = gp0_xy(v1.x, v1.y);
     ptr[5] = gp0_uv(uv1.x, uv1.y, tex.clut);
     ptr[6] = gp0_xy(v2.x, v2.y);
-    ptr[7] = gp0_uv(uv2.x, uv2.y, tex.clut);
+    ptr[7] = gp0_uv(uv2.x, uv2.y, 0);
 }
+
 
 void Renderer::drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int zIndex, uint32_t col) {
     drawTexTri(tex, v0, v1, v2, uv0, uv1, uv2, zIndex, col);

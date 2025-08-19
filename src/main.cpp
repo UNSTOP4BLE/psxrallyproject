@@ -220,20 +220,28 @@ int main(int argc, const char **argv) {
 
 		/*
 */
-//GFX::XY screen[4] = { {100,50}, {132,50}, {132,82}, {100,82} }; // four corners
-//GFX::XY uv[4]     = { {0,0}, {32,0}, {32,32}, {0,32} };          // texture coords
+GFX::XY screen[4] = { {100,50}, {132,50}, {132,82}, {100,82} }; // four corners
+GFX::XY uv[4]     = { {0,0}, {32,0}, {32,32}, {0,32} };          // texture coords
 
 		x+= 10;
-    	app.renderer.drawModel(&cubeModel,
-        	  0, 0, 0,                  // translation
-              0, 90+x, 90);
+//    	app.renderer.drawModel(&cubeModel,
+  //      	  0, 0, 0,                  // translation
+    //          0, 90+x, 90);
 
-		app.renderer.drawRect({10, 10, 20, 20}, 128, 0, 0);
-		app.renderer.drawRect({10, 20+20, 20, 20},   0, 128, 0);
-		app.renderer.drawRect({10, 50+20, 20, 20},   0,  0, 128);
-		app.renderer.drawTexRect(texture, {40, 10});
-		app.renderer.drawTexRect(texture, {40, 20+32});
-		
+
+// Z / ordering table index
+int zIndex = 10;
+
+// Color modulation
+uint32_t col = 0xFFFFFF;
+app.renderer.drawTexQuad(
+    texture,
+    screen[0], screen[1], screen[2], screen[3],   // 4 screen vertices
+    uv[0], uv[1], uv[2], uv[3],                   // 4 UV coords
+    0,                                            // zIndex (OT slot)
+    gp0_rgb(128,128,128)                          // modulation color
+);
+
 		app.renderer.endFrame();
 	}
 
