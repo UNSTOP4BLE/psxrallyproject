@@ -33,23 +33,14 @@ struct Rect {
 	int32_t x,y,w,h;
 };
 
-struct XY {
+struct Pos {
 	int32_t x,y;
-};
-
-struct Face {
-    int vertices[3];     // 3 vertex indices
-    uint32_t color;      // base color (used for modulation)
-    uint8_t u[3];        // per-vertex U coordinates
-    uint8_t v[3];        // per-vertex V coordinates
-	TextureInfo texInfo;
-    bool textured;       // true = textured, false = flat-shaded
 };
 
 struct Model {
     const GTEVector16 *vertices;
     int numVertices;
-    const Face *faces;
+    const GTE::Face *faces;
     int numFaces;
 };
 
@@ -61,9 +52,9 @@ public:
 	void endFrame(void);
 
 	void drawRect(Rect rect, int r, int g, int b);
-	void drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int zIndex, uint32_t col);
-	void drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int zIndex, uint32_t col);
-	void drawTexRect(const TextureInfo &tex, XY pos);
+	void drawTexTri(TextureInfo &tex, Pos v0, Pos v1, Pos v2, Pos uv0, Pos uv1, Pos uv2); 
+	void drawTexQuad(TextureInfo &tex, Pos v0, Pos v1, Pos v2, Pos v3, Pos uv0, Pos uv1, Pos uv2, Pos uv3);
+	void drawTexRect(TextureInfo &tex, Pos pos);
 	void drawModel(const Model *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ);
 
 private:

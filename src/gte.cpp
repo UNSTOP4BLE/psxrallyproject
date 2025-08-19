@@ -1,7 +1,7 @@
 #include "gte.h"
-#include "gpu.h"
 #include "ps1/cop0.h"
 #include "trig.h"
+#include "gpu.h"
 
 namespace GTE {
 void setupGTE(int width, int height) {

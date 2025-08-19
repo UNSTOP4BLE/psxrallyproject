@@ -9,7 +9,12 @@
 namespace GTE {
 #define ONE (1 << 12)
 
+struct Face {
+	uint8_t  vertices[4];
+	uint32_t color;
+};
+
 void setupGTE(int width, int height);
 void multiplyCurrentMatrixByVectors(GTEMatrix *output);
 void rotateCurrentMatrix(int yaw, int pitch, int roll);
-}
+};
