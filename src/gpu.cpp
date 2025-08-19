@@ -1,24 +1,6 @@
-/*
- * ps1-bare-metal - (C) 2023-2025 spicyjpeg
- *
- * Permission to use, copy, modify, and/or distribute this software for any
- * purpose with or without fee is hereby granted, provided that the above
- * copyright notice and this permission notice appear in all copies.
- *
- * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
- * REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
- * AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
- * INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
- * LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
- * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
- */
-
+#include "gpu.h"
 #include <assert.h>
 #include <stdbool.h>
-#include <stdint.h>
-#include "gpu.h"
-#include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
 namespace GFX {
@@ -28,7 +10,6 @@ static void waitForVSync(void);
 static void sendLinkedList(const void *data);
 static void sendVRAMData(const void *data, Rect rect);
 static void clearOrderingTable(uint32_t *table, int numEntries);
-static uint32_t *allocatePacket(DMAChain *chain, int zIndex, int numCommands);
 
 void Renderer::init(GP1VideoMode mode, int width, int height) {
 	// Set the origin of the displayed framebuffer. These "magic" values,
@@ -70,58 +51,156 @@ void Renderer::init(GP1VideoMode mode, int width, int height) {
 
     // Turn the display on (unblank)
     GPU_GP1 = gp1_dispBlank(false);
+	usingSecondFrame = false;
+	frameCounter = 0;
 }
 
-void Renderer::clear(void) {
-	int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
-	int bufferY = 0;
+void Renderer::beginFrame(void) {
+    auto newChain = getCurrentChain();
 
-	chain  = &dmaChains[usingSecondFrame];
-	usingSecondFrame = !usingSecondFrame;
-	
-	uint32_t *ptr = nullptr;
+    // determine where new framebuffer to draw to is in vram
+    int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
+    int bufferY = 0;
 
-	GPU_GP1 = gp1_fbOffset(bufferX, bufferY);
+    // clear and prepare new chain
+    clearOrderingTable(newChain->orderingTable, ORDERING_TABLE_SIZE);
+    newChain->nextPacket = newChain->data;
 
-	clearOrderingTable(chain->orderingTable, ORDERING_TABLE_SIZE);
-	chain->nextPacket = chain->data;
+    // add gpu commands to clear buffer and set drawing origin to new chain
+    // z is set to (ORDERING_TABLE_SIZE - 1) so they're executed before anything else
+    uint32_t bgColor = gp0_rgb(0, 255, 0);
 
-	ptr    = allocatePacket(chain, 0, 4);
-	ptr[0] = gp0_texpage(0, true, false);
-	ptr[1] = gp0_xy(bufferX, bufferY);
-	ptr[2] = gp0_fbOffset2(
-		bufferX + SCREEN_WIDTH -  1,
-		bufferY + SCREEN_HEIGHT - 2
-	);
-	ptr[3] = gp0_fbOrigin(bufferX, bufferY);
-
-	ptr    = allocatePacket(chain, 0, 3);
-	ptr[0] = gp0_rgb(0, 255, 0) | gp0_vramFill();
-	ptr[1] = gp0_xy(bufferX, bufferY);
-	ptr[2] = gp0_xy(SCREEN_WIDTH, SCREEN_HEIGHT);
+    auto ptr = allocatePacket(ORDERING_TABLE_SIZE - 1, 7);
+    ptr[0]   = gp0_texpage(0, true, false);
+    ptr[1]   = gp0_xy(bufferX, bufferY);
+    ptr[2]   = gp0_fbOffset2(bufferX + SCREEN_WIDTH -  1, bufferY + SCREEN_HEIGHT - 2);
+    ptr[3]   = gp0_fbOrigin(bufferX, bufferY);
+    ptr[4]   = bgColor | gp0_vramFill();
+    ptr[5]   = gp0_xy(bufferX, bufferY);
+    ptr[6]   = gp0_xy(SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
-void Renderer::flip(void) {
-	*(chain->nextPacket) = gp0_endTag(0);
-	waitForGP0Ready();
-	waitForVSync();
-	sendLinkedList(&(chain->orderingTable)[ORDERING_TABLE_SIZE - 1]);
+void Renderer::endFrame(void) {
+    auto oldChain = getCurrentChain();
+
+    // switch active chain
+    usingSecondFrame = !usingSecondFrame;
+
+    // determine where new framebuffer to display is in vram
+    int bufferX = usingSecondFrame ? SCREEN_WIDTH : 0;
+    int bufferY = 0;
+
+    // display new framebuffer after vsync
+    waitForGP0Ready();
+    waitForVSync();
+    GPU_GP1 = gp1_fbOffset(bufferX, bufferY);
+
+    // terminate and start drawing current chain
+    *(oldChain->nextPacket) = gp0_endTag(0);
+    sendLinkedList(&(oldChain->orderingTable)[ORDERING_TABLE_SIZE - 1]);
 }
 
 void Renderer::drawRect(Rect rect, int r, int g, int b) {
-	uint32_t *ptr = allocatePacket(chain, 0, 3);
+	uint32_t *ptr = allocatePacket(0, 3);
 	ptr[0]        = gp0_rgb(r, g, b) | gp0_rectangle(false, false, false); // solid, untextured
 	ptr[1]        = gp0_xy(rect.x, rect.y);          // top-left corner
 	ptr[2]        = gp0_xy(rect.w, rect.h);       // width and height
 }
 
+void Renderer::drawTexTri(TextureInfo &tex, Pos v0, Pos v1, Pos v2, Pos uv0, Pos uv1, Pos uv2) {
+   	// Draw first triangle
+    uint32_t *ptr = allocatePacket(0, 8);
+	ptr[0]        = gp0_texpage(tex.page, false, false); // set texture page and CLUT
+    ptr[1]        = gp0_rgb(128, 128, 128) | gp0_shadedTriangle(false, true, false);
+    ptr[2]        = gp0_xy(v0.x, v0.y);
+    ptr[3]        = gp0_uv(uv0.x, uv0.y, 0);
+    ptr[4]        = gp0_xy(v1.x, v1.y);
+    ptr[5]        = gp0_uv(uv1.x, uv1.y, tex.page);
+    ptr[6]        = gp0_xy(v2.x, v2.y);
+    ptr[7]        = gp0_uv(uv2.x, uv2.y, 0);
+}
+
+void Renderer::drawTexQuad(TextureInfo &tex, Pos v0, Pos v1, Pos v2, Pos v3, Pos uv0, Pos uv1, Pos uv2, Pos uv3) {
+    drawTexTri(tex, v0, v1, v2, uv0, uv1, uv2);
+    drawTexTri(tex, v3, v0, v2, uv3, uv0, uv2);
+}
+
 void Renderer::drawTexRect(TextureInfo &tex, Pos pos) {
-	uint32_t *ptr = allocatePacket(chain, 0, 5);
+	uint32_t *ptr = allocatePacket(0, 5);
 	ptr[0]        = gp0_texpage(tex.page, false, false);
 	ptr[1]        = gp0_rectangle(true, true, false);
 	ptr[2]        = gp0_xy(pos.x, pos.y);
 	ptr[3]        = gp0_uv(tex.u, tex.v, 0);
 	ptr[4]        = gp0_xy(tex.width, tex.height);
+}
+
+void Renderer::drawModel(const Model *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ) {
+    // Setup GTE transform
+    gte_setControlReg(GTE_TRX, tx);
+    gte_setControlReg(GTE_TRY, ty);
+    gte_setControlReg(GTE_TRZ, tz);
+
+    gte_setRotationMatrix(
+        ONE,   0,   0,
+          0, ONE,   0,
+          0,   0, ONE
+    );
+
+    rotateCurrentMatrix(rotX, rotY, rotZ);
+
+    // Walk faces
+    for (int i = 0; i < model->numFaces; i++) {
+        const Face *face = &model->faces[i];
+
+        // Transform first 3 vertices
+        gte_loadV0(&model->vertices[face->vertices[0]]);
+        gte_loadV1(&model->vertices[face->vertices[1]]);
+        gte_loadV2(&model->vertices[face->vertices[2]]);
+        gte_command(GTE_CMD_RTPT | GTE_SF);
+
+        // Backface cull
+        gte_command(GTE_CMD_NCLIP);
+        if (gte_getDataReg(GTE_MAC0) <= 0)
+            continue;
+
+        uint32_t xy0 = gte_getDataReg(GTE_SXY0);
+
+        // Transform 4th vertex
+        gte_loadV0(&model->vertices[face->vertices[3]]);
+        gte_command(GTE_CMD_RTPS | GTE_SF);
+
+        // Depth average
+        gte_command(GTE_CMD_AVSZ4 | GTE_SF);
+        int zIndex = gte_getDataReg(GTE_OTZ);
+        if ((zIndex < 0) || (zIndex >= ORDERING_TABLE_SIZE))
+            continue;
+
+        // Emit quad into renderer’s chain
+        uint32_t *ptr = allocatePacket(zIndex, 5);
+        ptr[0] = face->color | gp0_shadedQuad(false, false, false);
+        ptr[1] = xy0;
+        gte_storeDataReg(GTE_SXY0, 2 * 4, ptr);
+        gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
+        gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
+    }
+}
+
+uint32_t *Renderer::allocatePacket(int zIndex, int numCommands) {
+    auto chain = getCurrentChain();
+    auto ptr   = chain->nextPacket;
+
+    // check z index is valid
+    assert((zIndex >= 0) && (zIndex < ORDERING_TABLE_SIZE));
+
+    // link new packet into ordering table at specified z index
+    *ptr = gp0_tag(numCommands, (void *) chain->orderingTable[zIndex]);
+    chain->orderingTable[zIndex] = gp0_tag(0, ptr);
+
+    // bump up allocator and check we haven't run out of space
+    chain->nextPacket += numCommands + 1;
+    assert(chain->nextPacket < &(chain->data)[CHAIN_BUFFER_SIZE]);
+
+    return &ptr[1];
 }
 
 void uploadTexture(TextureInfo &info, const void *data, Rect pos) {
@@ -234,19 +313,5 @@ static void clearOrderingTable(uint32_t *table, int numEntries) {
 
 	while (DMA_CHCR(DMA_OTC) & DMA_CHCR_ENABLE)
 		__asm__ volatile("");
-}
-
-static uint32_t *allocatePacket(DMAChain *chain, int zIndex, int numCommands) {
-	uint32_t *ptr      = chain->nextPacket;
-	chain->nextPacket += numCommands + 1;
-
-	assert((zIndex >= 0) && (zIndex < ORDERING_TABLE_SIZE));
-
-	*ptr = gp0_tag(numCommands, (void *) chain->orderingTable[zIndex]);
-	chain->orderingTable[zIndex] = gp0_tag(0, ptr);
-
-	assert(chain->nextPacket < &(chain->data)[CHAIN_BUFFER_SIZE]);
-
-	return &ptr[1];
 }
 }
