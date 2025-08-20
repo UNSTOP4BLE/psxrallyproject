@@ -48,25 +48,6 @@ static const GTEVector16 cubeVertices[NUM_CUBE_VERTICES] = {
     { .x =  32, .y =  32, .z =  32 }  // 7
 };
 
-// 6 faces (each is a quad defined by 4 vertex indices)
-// Colors are just arbitrary RGB values for testing.
-static const GTE::Face cubeFaces[NUM_CUBE_FACES] = {
-    { .vertices = { 0, 1, 2, 3 }, .color = gp0_rgb(255,   0,   0) }, // back (red)
-    { .vertices = { 6, 7, 4, 5 }, .color = gp0_rgb(  0, 255,   0) }, // front (green)
-    { .vertices = { 4, 5, 0, 1 }, .color = gp0_rgb(  0,   0, 255) }, // bottom (blue)
-    { .vertices = { 7, 6, 3, 2 }, .color = gp0_rgb(255, 255,   0) }, // top (yellow)
-    { .vertices = { 6, 4, 2, 0 }, .color = gp0_rgb(255,   0, 255) }, // left (magenta)
-    { .vertices = { 5, 7, 1, 3 }, .color = gp0_rgb(  0, 255, 255) }  // right (cyan)
-};
-
-// Wrap it in a Model struct
-static const GFX::Model cubeModel = {
-    .vertices   = cubeVertices,
-    .numVertices = NUM_CUBE_VERTICES,
-    .faces      = cubeFaces,
-    .numFaces   = NUM_CUBE_FACES
-};
-
 int main(int argc, const char **argv) {
 	initSerialIO(115200);
 
@@ -85,16 +66,63 @@ int main(int argc, const char **argv) {
 	// Load the texture, placing it next to the two framebuffers in VRAM.
 	GFX::TextureInfo texture;
 	GFX::uploadTexture(texture, textureData, {SCREEN_WIDTH * 2, 0, 32, 32});
+    const GFX::Face cubeFaces[NUM_CUBE_FACES] = {
+        // Back (-Z, Red)
+        { .vertices = { 0, 2, 1 }, .color = gp0_rgb(255,0,0), .textured=false },
+        { .vertices = { 3, 2, 1 }, .color = gp0_rgb(255,0,0), .textured=false },
+
+        // Front (+Z, Textured)
+        { 
+            .vertices = { 4, 6, 5 },
+            .color = gp0_rgb(255,255,255), // base color modulated with texture
+            .u = { 0, 0, 31 }, 
+            .v = { 0, 31, 0 },
+            .texInfo = texture,
+            .textured = true
+        },
+        { 
+            .vertices = { 7, 6, 5 },
+            .color = gp0_rgb(255,255,255),
+            .u = { 31, 0, 31 },
+            .v = { 31, 31, 0 },
+            .texInfo = texture,
+            .textured = true
+        },
+
+        // Bottom (-Y, Blue)
+        { .vertices = { 0, 1, 4 }, .color = gp0_rgb(0,0,255), .textured=false },
+        { .vertices = { 5, 1, 4 }, .color = gp0_rgb(0,0,255), .textured=false },
+
+        // Top (+Y, Yellow)
+        { .vertices = { 2, 6, 3 }, .color = gp0_rgb(255,255,0), .textured=false },
+        { .vertices = { 7, 6, 3 }, .color = gp0_rgb(255,255,0), .textured=false },
+
+        // Left (-X, Magenta)
+        { .vertices = { 0, 4, 2 }, .color = gp0_rgb(255,0,255), .textured=false },
+        { .vertices = { 6, 4, 2 }, .color = gp0_rgb(255,0,255), .textured=false },
+
+        // Right (+X, Cyan)
+        { .vertices = { 1, 3, 5 }, .color = gp0_rgb(0,255,255), .textured=false },
+        { .vertices = { 7, 3, 5 }, .color = gp0_rgb(0,255,255), .textured=false },
+    };
+
+    // Wrap it in a Model struct
+    const GFX::Model cubeModel = {
+        .vertices   = cubeVertices,
+        .numVertices = NUM_CUBE_VERTICES,
+        .faces      = cubeFaces,
+        .numFaces   = NUM_CUBE_FACES
+    };
 
 	int x = 0;
 	while(1) {
 		renderer.beginFrame();
 
-		GFX::Pos screen[4] = { {100,50}, {132,50}, {132,82}, {100,82} }; // four corners
-		GFX::Pos uv[4]     = { {0,0}, {32,0}, {32,32}, {0,32} };          // texture coords
+		GFX::XY screen[4] = { {0,0}, {32,0}, {32,32}, {0,32} }; // four corners
+		GFX::XY uv[4]     = { {0,0}, {32,0}, {32,32}, {0,32} };          // texture coords
 
 		renderer.drawTexQuad(texture, screen[0], screen[1], screen[2], screen[3],
-								uv[0], uv[1], uv[2], uv[3]);
+								uv[0], uv[1], uv[2], uv[3], 0, gp0_rgb(128, 128, 128));
 
 		x+= 10;
     	renderer.drawModel(&cubeModel,

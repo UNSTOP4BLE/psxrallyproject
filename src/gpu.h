@@ -12,7 +12,7 @@ namespace GFX {
 
 #define DMA_MAX_CHUNK_SIZE    16
 #define CHAIN_BUFFER_SIZE   1024
-#define ORDERING_TABLE_SIZE  1024
+#define ORDERING_TABLE_SIZE  3072
 
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 240
@@ -29,18 +29,27 @@ struct TextureInfo {
 	uint16_t page, clut;
 };
 
+struct Face {
+    int vertices[3];     // indices into model->vertices[]
+    uint32_t color;      // base color (for modulation or flat shading)
+    uint8_t u[3];        // per-vertex U texture coords
+    uint8_t v[3];        // per-vertex V texture coords
+    TextureInfo texInfo; // page + clut for this face
+    bool textured;       // true = textured, false = flat-shaded
+};
+
 struct Rect {
 	int32_t x,y,w,h;
 };
 
-struct Pos {
+struct XY {
 	int32_t x,y;
 };
 
 struct Model {
     const GTEVector16 *vertices;
     int numVertices;
-    const GTE::Face *faces;
+    const Face *faces;
     int numFaces;
 };
 
@@ -51,10 +60,10 @@ public:
 	void beginFrame(void);
 	void endFrame(void);
 
-	void drawRect(Rect rect, int r, int g, int b);
-	void drawTexTri(TextureInfo &tex, Pos v0, Pos v1, Pos v2, Pos uv0, Pos uv1, Pos uv2); 
-	void drawTexQuad(TextureInfo &tex, Pos v0, Pos v1, Pos v2, Pos v3, Pos uv0, Pos uv1, Pos uv2, Pos uv3);
-	void drawTexRect(TextureInfo &tex, Pos pos);
+	void drawRect(Rect rect, int z, uint32_t col);
+	void drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int z, uint32_t col);
+	void drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int z, uint32_t col);
+	void drawTexRect(const TextureInfo &tex, XY pos, int z, int col);
 	void drawModel(const Model *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ);
 
 private:
