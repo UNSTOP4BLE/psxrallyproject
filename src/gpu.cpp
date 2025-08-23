@@ -2,6 +2,8 @@
 #include <assert.h>
 #include <stdbool.h>
 #include "ps1/registers.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 namespace GFX {
 static void waitForGP0Ready(void);
@@ -102,27 +104,9 @@ void Renderer::endFrame(void) {
 
 void Renderer::drawRect(Rect rect, int z, uint32_t col) {
 	uint32_t *ptr = allocatePacket(0, 3);
-	ptr[0]        = col | gp0_rectangle(false, false, false); // solid, untextured
-	ptr[1]        = gp0_xy(rect.x, rect.y);          // top-left corner
-	ptr[2]        = gp0_xy(rect.w, rect.h);       // width and height
-}
-
-void Renderer::drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int z, uint32_t col) {
-   	// Draw first triangle
-    uint32_t *ptr = allocatePacket(z, 8);
-	ptr[0]        = gp0_texpage(tex.page, false, false); // set texture page and CLUT
-    ptr[1]        = col | gp0_shadedTriangle(false, true, false);
-    ptr[2]        = gp0_xy(v0.x, v0.y);
-    ptr[3]        = gp0_uv(uv0.x, uv0.y, 0);
-    ptr[4]        = gp0_xy(v1.x, v1.y);
-    ptr[5]        = gp0_uv(uv1.x, uv1.y, tex.page);
-    ptr[6]        = gp0_xy(v2.x, v2.y);
-    ptr[7]        = gp0_uv(uv2.x, uv2.y, 0);
-}
-
-void Renderer::drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int z, uint32_t col) {
-    drawTexTri(tex, v0, v1, v2, uv0, uv1, uv2, z, col);
-    drawTexTri(tex, v3, v0, v2, uv3, uv0, uv2, z, col);
+	ptr[0]        = col | gp0_rectangle(false, false, false); 
+	ptr[1]        = gp0_xy(rect.x, rect.y);       
+	ptr[2]        = gp0_xy(rect.w, rect.h);     
 }
 
 void Renderer::drawTexRect(const TextureInfo &tex, XY pos, int z, int col) {
@@ -134,71 +118,151 @@ void Renderer::drawTexRect(const TextureInfo &tex, XY pos, int z, int col) {
 	ptr[4]        = gp0_xy(tex.width, tex.height);
 }
 
-void Renderer::drawModel(const Model *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ) {
-    // Setup GTE transform
-    gte_setControlReg(GTE_TRX, tx);
-    gte_setControlReg(GTE_TRY, ty);
-    gte_setControlReg(GTE_TRZ, tz);
+void Renderer::drawTri(XY v0, XY v1, XY v2, int z, uint32_t col) {
+    uint32_t *ptr = allocatePacket(z, 4);
+    ptr[0]        = col | gp0_shadedTriangle(false, false, false);
+    ptr[1]        = gp0_xy(v0.x, v0.y);
+    ptr[2]        = gp0_xy(v1.x, v1.y);
+    ptr[3]        = gp0_xy(v2.x, v2.y);
+}
 
-    // Identity + rotation
-    gte_setRotationMatrix(
-        ONE,   0,   0,
-          0, ONE,   0,
-          0,   0, ONE
-    );
-    GTE::rotateCurrentMatrix(rotX, rotY, rotZ);
+void Renderer::drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int z, uint32_t col) {
+    uint32_t *ptr = allocatePacket(z, 8);
+	ptr[0]        = gp0_texpage(tex.page, false, false); // set texture page and CLUT
+    ptr[1]        = col | gp0_shadedTriangle(false, true, false);
+    ptr[2]        = gp0_xy(v0.x, v0.y);
+    ptr[3]        = gp0_uv(uv0.x, uv0.y, 0);
+    ptr[4]        = gp0_xy(v1.x, v1.y);
+    ptr[5]        = gp0_uv(uv1.x, uv1.y, tex.page);
+    ptr[6]        = gp0_xy(v2.x, v2.y);
+    ptr[7]        = gp0_uv(uv2.x, uv2.y, 0);
+}
 
-    for (int i = 0; i < model->numFaces; i++) {
-        const GFX::Face &face = model->faces[i];
+void Renderer::drawQuad(XY v0, XY v1, XY v2, XY v3, int z, uint32_t col) {
+    drawTri(v0, v1, v2, z, col);
+    drawTri(v1, v2, v3, z, col);
+}
 
-        // Load the triangle into GTE
-        gte_loadV0(&model->vertices[face.vertices[0]]);
-        gte_loadV1(&model->vertices[face.vertices[1]]);
-        gte_loadV2(&model->vertices[face.vertices[2]]);
-        gte_command(GTE_CMD_RTPT | GTE_SF);
+void Renderer::drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int z, uint32_t col) {
+    drawTexTri(tex, v0, v1, v2, uv0, uv1, uv2, z, col);
+    drawTexTri(tex, v1, v2, v3, uv3, uv0, uv2, z, col);
+}
 
-        // Backface culling
-        gte_command(GTE_CMD_NCLIP);
-        if (gte_getDataReg(GTE_MAC0) <= 0)
-            continue;
+//correct
+static const Face cubeFaces[6] = {
+    { .indices = {2, 6, 0, 4}, .color = 0x0000ff },
+    { .indices = {6, 2, 7, 3}, .color = 0x00ff00 },
+    { .indices = {6, 7, 4, 5}, .color = 0x00ffff },
+    { .indices = {7, 3, 5, 1}, .color = 0xff0000 },
+    { .indices = {3, 2, 1, 0}, .color = 0xff00ff },
+    { .indices = {5, 1, 4, 0}, .color = 0xffff00 }
+};
 
-        // Depth average
-        gte_command(GTE_CMD_AVSZ3 | GTE_SF);
-        int zIndex = gte_getDataReg(GTE_OTZ);
-		
-        if ((zIndex < 0) || (zIndex >= ORDERING_TABLE_SIZE))
-            continue;
+//made by converter
+static const Face cubeFacesconv[6] = {
+    { .indices = { 0, 4, 6, 2 }, .color = 0x0000ff },
+    { .indices = { 3, 2, 6, 7 }, .color = 0x00ff00 },
+    { .indices = { 7, 6, 4, 5 }, .color = 0x00ffff },
+    { .indices = { 5, 1, 3, 7 }, .color = 0xff0000 },
+    { .indices = { 1, 0, 2, 3 }, .color = 0xff00ff },
+    { .indices = { 5, 4, 0, 1 }, .color = 0xffff00 }
+};
 
-        // Extract screen-space XY
-        XY v0 = { (int16_t)(gte_getDataReg(GTE_SXY0) & 0xFFFF),
-                  (int16_t)(gte_getDataReg(GTE_SXY0) >> 16) };
-        XY v1 = { (int16_t)(gte_getDataReg(GTE_SXY1) & 0xFFFF),
-                  (int16_t)(gte_getDataReg(GTE_SXY1) >> 16) };
-        XY v2 = { (int16_t)(gte_getDataReg(GTE_SXY2) & 0xFFFF),
-                  (int16_t)(gte_getDataReg(GTE_SXY2) >> 16) };
 
-        // UVs
-        XY uv0 = { face.u[0], face.v[0] };
-        XY uv1 = { face.u[1], face.v[1] };
-        XY uv2 = { face.u[2], face.v[2] };
+void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ) {
+	gte_setControlReg(GTE_TRX,  tx);
+	gte_setControlReg(GTE_TRY,  ty);
+	gte_setControlReg(GTE_TRZ,  tz);
+	gte_setRotationMatrix(
+		ONE,   0,   0,
+		  0, ONE,   0,
+		  0,   0, ONE
+	);
 
-        if (face.textured) {
-            drawTexTri(face.texInfo, v0, v1, v2, uv0, uv1, uv2, zIndex, face.color);
-        } else {
-        //    uint32_t *ptr = allocatePacket(zIndex, 4);
-      //      ptr[0] = face.color | gp0_shadedTriangle(true, false, false);
-    //        ptr[1] = gp0_xy(v0.x, v0.y);
-  //          ptr[2] = gp0_xy(v1.x, v1.y);
-//            ptr[3] = gp0_xy(v2.x, v2.y);
-            uint32_t *ptr = allocatePacket(zIndex,6);
-            ptr[0] = gp0_shadedTriangle(true, false, false) | gp0_rgb(255, 0, 0);
-            ptr[1] = gp0_xy(v0.x, v0.y);
-            ptr[2] = gp0_rgb(0, 255, 0);
-            ptr[3] = gp0_xy(v1.x, v1.y);
-            ptr[4] = gp0_rgb(0, 0, 255);
-            ptr[5] = gp0_xy(v2.x, v2.y);
-        }
-    }
+	GTE::rotateCurrentMatrix(rotX, rotY, rotZ);
+
+	for (int i = 0; i < static_cast<int>(model->header.numfaces); i++) {
+		const Face *face = &model->faces[i];
+
+		bool istriangle = false;
+		if (face->indices[3] < 0) //for triangles the 4th indice is negative
+			istriangle = true;
+
+		// Apply perspective projection to the first 3 vertices. The GTE can
+		// only process up to 3 vertices at a time, so we'll transform the
+		// last one separately.
+		gte_loadV0(&model->vertices[face->indices[0]]);
+		gte_loadV1(&model->vertices[face->indices[1]]);
+		gte_loadV2(&model->vertices[face->indices[2]]);
+		gte_command(GTE_CMD_RTPT | GTE_SF);
+
+		// Determine the winding order of the vertices on screen. If they
+		// are ordered clockwise then the face is visible, otherwise it can
+		// be skipped as it is not facing the camera.
+		gte_command(GTE_CMD_NCLIP);
+
+		if (gte_getDataReg(GTE_MAC0) <= 0)
+			continue;
+
+		// Save the first transformed vertex (the GTE only keeps the X/Y
+		// coordinates of the last 3 vertices processed and Z coordinates of
+		// the last 4 vertices processed) and apply projection to the last
+		// vertex.
+		uint32_t xy0 = gte_getDataReg(GTE_SXY0);
+		if (!istriangle) {
+			gte_loadV0(&model->vertices[face->indices[3]]);
+			gte_command(GTE_CMD_RTPS | GTE_SF);
+		}
+		// Calculate the average Z coordinate of all vertices and use it to
+		// determine the ordering table bucket index for this face.
+		gte_command(GTE_CMD_AVSZ4 | GTE_SF);
+		int zIndex = gte_getDataReg(GTE_OTZ);
+
+		if ((zIndex < 0) || (zIndex >= ORDERING_TABLE_SIZE))
+			continue;
+
+		// Create a new quad and give its vertices the X/Y coordinates
+		// calculated by the GTE.
+		if (istriangle) {//face is a triangle
+			auto ptr = allocatePacket(zIndex,6);
+			ptr[0] = gp0_shadedTriangle(true, false, false) | gp0_rgb(255, 0, 0);
+			ptr[1] = xy0;
+			ptr[2] = gp0_rgb(0, 255, 0);
+			gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
+			ptr[4] = gp0_rgb(0, 0, 255);
+			gte_storeDataReg(GTE_SXY2, 5 * 4, ptr);
+			
+		}
+		else { //face is a quad
+				auto ptr    = allocatePacket(zIndex, 5);
+				ptr[0] = face->color | gp0_shadedQuad(false, false, false);
+				ptr[1] = xy0;
+				gte_storeDataReg(GTE_SXY0, 2 * 4, ptr);
+	    		gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
+				gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
+
+
+/*
+				//(A, B, C) and (B, C, D) respectively;
+
+				//tri1
+				uint32_t *ptr = allocatePacket(zIndex,6);
+				ptr[0] = gp0_shadedTriangle(true, false, false) | gp0_rgb(255, 0, 0);
+				ptr[1] = xy0;
+				ptr[2] = gp0_rgb(0, 255, 0);
+				gte_storeDataReg(GTE_SXY0, 3 * 4, ptr);
+				ptr[4] = gp0_rgb(0, 0, 255);
+				gte_storeDataReg(GTE_SXY1, 5 * 4, ptr);
+				//tri2
+				ptr = allocatePacket(zIndex,6);
+				ptr[0] = gp0_shadedTriangle(true, false, false) | gp0_rgb(255, 0, 0);
+				gte_storeDataReg(GTE_SXY0, 1 * 4, ptr);
+				ptr[2] = gp0_rgb(0, 255, 0);
+				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
+				ptr[4] = gp0_rgb(0, 0, 255);
+				gte_storeDataReg(GTE_SXY2, 5 * 4, ptr);*/
+		}
+	}
 }
 
 uint32_t *Renderer::allocatePacket(int zIndex, int numCommands) {
@@ -257,6 +321,43 @@ void uploadIndexedTexture(TextureInfo &info, const void *image, const void *pale
 	info.v      = (uint8_t)   (imgrect.y % 256);
 	info.width  = (uint16_t) imgrect.w;
 	info.height = (uint16_t) imgrect.h;
+}
+const ModelFile* loadModel(const uint8_t* data) {
+    // reinterpret header
+    const ModelFileHeader* header = reinterpret_cast<const ModelFileHeader*>(data);
+ //   if (!header->isValid()) {
+   //     printf("Invalid model!\n");
+    //    return nullptr;
+    //}
+
+    // set up ModelFile
+    static ModelFile model; // or malloc if you prefer
+    model.header = *header; 
+
+    // vertices are right after the header
+    model.vertices = reinterpret_cast<const GTEVector16*>(header->vertices());
+
+    // faces are right after the vertices
+    model.faces = reinterpret_cast<const Face*>(header->faces());
+
+    printf("Model Header:\n");
+    printf("  Magic: %u\n", model.header.magic);
+    printf("  Num Vertices: %u\n", model.header.numvertices);
+    printf("  Num Faces: %u\n", model.header.numfaces);
+
+    printf("\nVertices:\n");
+    for (uint32_t i = 0; i < model.header.numvertices; i++) {
+        printf("  [%u] x=%d y=%d z=%d\n", i, model.vertices[i].x, model.vertices[i].y, model.vertices[i].z);
+    }
+
+    printf("\nFaces:\n");
+    for (uint32_t i = 0; i < model.header.numfaces; i++) {
+        const Face &f = model.faces[i];
+        printf("  [%u] indices: %u, %u, %u, %u  color: 0x%08X\n",
+            i, f.indices[0], f.indices[1], f.indices[2], f.indices[3], f.color);
+    }
+
+    return &model;
 }
 
 static void waitForGP0Ready(void) {

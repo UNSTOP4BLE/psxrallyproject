@@ -57,3 +57,4 @@ convertImage(
 	assets/textureData.dat
 )
 addBinaryFile(PSXRallyProject textureData "${PROJECT_BINARY_DIR}/assets/textureData.dat")
+addBinaryFile(PSXRallyProject mymodel "cube.obj.mdl")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")

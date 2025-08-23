@@ -11,7 +11,7 @@
 namespace GFX {
 
 #define DMA_MAX_CHUNK_SIZE    16
-#define CHAIN_BUFFER_SIZE   1024
+#define CHAIN_BUFFER_SIZE   8192
 #define ORDERING_TABLE_SIZE  3072
 
 #define SCREEN_WIDTH  320
@@ -30,12 +30,11 @@ struct TextureInfo {
 };
 
 struct Face {
-    int vertices[3];     // indices into model->vertices[]
+    int16_t indices[4]; // indices into model->vertices[], last one is negative if its a triangle
     uint32_t color;      // base color (for modulation or flat shading)
     uint8_t u[3];        // per-vertex U texture coords
     uint8_t v[3];        // per-vertex V texture coords
-    TextureInfo texInfo; // page + clut for this face
-    bool textured;       // true = textured, false = flat-shaded
+    int16_t texid;       // texpage id, -1 for untextured
 };
 
 struct Rect {
@@ -46,11 +45,25 @@ struct XY {
 	int32_t x,y;
 };
 
-struct Model {
+struct [[gnu::packed]] ModelFileHeader {
+    uint32_t magic;
+    uint32_t numvertices, numfaces, numtextures;
+
+    inline bool isValid(void) const {
+        return magic == (('M' << 24) | ('O' << 16) | ('D' << 8) | 'L');
+    }
+    inline const GTEVector16 *vertices(void) const {
+        return reinterpret_cast<const GTEVector16 *>(this + 1);
+    }
+    inline const Face *faces(void) const {
+        return reinterpret_cast<const Face *>(vertices() + numvertices);
+    }
+};
+
+struct [[gnu::packed]] ModelFile {
+	ModelFileHeader header;
     const GTEVector16 *vertices;
-    int numVertices;
     const Face *faces;
-    int numFaces;
 };
 
 class Renderer {
@@ -61,10 +74,12 @@ public:
 	void endFrame(void);
 
 	void drawRect(Rect rect, int z, uint32_t col);
-	void drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int z, uint32_t col);
-	void drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int z, uint32_t col);
 	void drawTexRect(const TextureInfo &tex, XY pos, int z, int col);
-	void drawModel(const Model *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ);
+	void drawTri(XY v0, XY v1, XY v2, int z, uint32_t col);
+	void drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int z, uint32_t col);
+	void drawQuad(XY v0, XY v1, XY v2, XY v3, int z, uint32_t col);
+	void drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int z, uint32_t col);
+	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ);
 
 private:
 	bool usingSecondFrame;
@@ -80,5 +95,6 @@ private:
 
 void uploadTexture(TextureInfo &info, const void *data, Rect pos);
 void uploadIndexedTexture(TextureInfo &info, const void *image, const void *palette, int imageX, int imageY, int paletteX, int paletteY, int width, int height, GP0ColorDepth colorDepth);
+const ModelFile *loadModel(const uint8_t *data);
 
 }
