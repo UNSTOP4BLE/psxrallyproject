@@ -37,18 +37,19 @@ int main(int argc, const char **argv) {
 	while(1) {
 		renderer.beginFrame();
 
-		GFX::XY screen[4] = { {0,0}, {32,0}, {32,32}, {0,32} }; // four corners
-		GFX::XY uv[4]     = { {0,0}, {32,0}, {32,32}, {0,32} };          // texture coords
+		GFX::XY screen[4] = { {0,0}, {32,0}, {0,32}, {32,32} }; // TL, TR, BL, BR
+		GFX::XY uv[4]     = { {0,0}, {32,0}, {0,32}, {32,32} }; // TL, TR, BL, BR
 
-		renderer.drawTri(screen[0],screen[1],screen[2], 0, gp0_rgb(255, 128, 128));
 
-//		renderer.drawTexQuad(texture, screen[0], screen[1], screen[2], screen[3],
-//								uv[0], uv[1], uv[2], uv[3], 0, gp0_rgb(128, 128, 128));
+//		renderer.drawTri(screen[0],screen[1],screen[2], 0, gp0_rgb(255, 128, 128));
+
+		renderer.drawTexQuad(texture, screen[0], screen[1], screen[2], screen[3],
+								uv[0], uv[1], uv[2], uv[3], 0, gp0_rgb(128, 128, 128));
 
 		x+= 10;
     	renderer.drawModel(model,
         	  0, 0, 0,                  // translation
-              0, x, 90);
+              0, x, 90, texture);
 
 		renderer.endFrame();
 	}

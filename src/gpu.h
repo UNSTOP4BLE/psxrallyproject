@@ -32,9 +32,9 @@ struct TextureInfo {
 struct Face {
     int16_t indices[4]; // indices into model->vertices[], last one is negative if its a triangle
     uint32_t color;      // base color (for modulation or flat shading)
-    uint8_t u[3];        // per-vertex U texture coords
-    uint8_t v[3];        // per-vertex V texture coords
-    int16_t texid;       // texpage id, -1 for untextured
+    uint8_t u[4];        // per-vertex U texture coords
+    uint8_t v[4];        // per-vertex V texture coords
+    int32_t texid;       // texpage id, -1 for untextured
 };
 
 struct Rect {
@@ -47,7 +47,7 @@ struct XY {
 
 struct [[gnu::packed]] ModelFileHeader {
     uint32_t magic;
-    uint32_t numvertices, numfaces, numtextures;
+    uint32_t numvertices, numfaces, numtex;
 
     inline bool isValid(void) const {
         return magic == (('M' << 24) | ('O' << 16) | ('D' << 8) | 'L');
@@ -79,7 +79,7 @@ public:
 	void drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int z, uint32_t col);
 	void drawQuad(XY v0, XY v1, XY v2, XY v3, int z, uint32_t col);
 	void drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int z, uint32_t col);
-	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ);
+	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ, const TextureInfo &tex);
 
 private:
 	bool usingSecondFrame;

@@ -103,14 +103,14 @@ void Renderer::endFrame(void) {
 }
 
 void Renderer::drawRect(Rect rect, int z, uint32_t col) {
-	uint32_t *ptr = allocatePacket(0, 3);
+	auto ptr = allocatePacket(0, 3);
 	ptr[0]        = col | gp0_rectangle(false, false, false); 
 	ptr[1]        = gp0_xy(rect.x, rect.y);       
 	ptr[2]        = gp0_xy(rect.w, rect.h);     
 }
 
 void Renderer::drawTexRect(const TextureInfo &tex, XY pos, int z, int col) {
-	uint32_t *ptr = allocatePacket(0, 5);
+	auto ptr = allocatePacket(0, 5);
 	ptr[0]        = gp0_texpage(tex.page, false, false);
 	ptr[1]        = col | gp0_rectangle(true, true, false);
 	ptr[2]        = gp0_xy(pos.x, pos.y);
@@ -119,7 +119,7 @@ void Renderer::drawTexRect(const TextureInfo &tex, XY pos, int z, int col) {
 }
 
 void Renderer::drawTri(XY v0, XY v1, XY v2, int z, uint32_t col) {
-    uint32_t *ptr = allocatePacket(z, 4);
+    auto ptr = allocatePacket(z, 4);
     ptr[0]        = col | gp0_shadedTriangle(false, false, false);
     ptr[1]        = gp0_xy(v0.x, v0.y);
     ptr[2]        = gp0_xy(v1.x, v1.y);
@@ -127,7 +127,7 @@ void Renderer::drawTri(XY v0, XY v1, XY v2, int z, uint32_t col) {
 }
 
 void Renderer::drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int z, uint32_t col) {
-    uint32_t *ptr = allocatePacket(z, 8);
+    auto *ptr = allocatePacket(z, 8);
 	ptr[0]        = gp0_texpage(tex.page, false, false); // set texture page and CLUT
     ptr[1]        = col | gp0_shadedTriangle(false, true, false);
     ptr[2]        = gp0_xy(v0.x, v0.y);
@@ -139,13 +139,26 @@ void Renderer::drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, X
 }
 
 void Renderer::drawQuad(XY v0, XY v1, XY v2, XY v3, int z, uint32_t col) {
-    drawTri(v0, v1, v2, z, col);
-    drawTri(v1, v2, v3, z, col);
+	auto ptr    = allocatePacket(z, 5);
+	ptr[0] = col | gp0_shadedQuad(false, false, false);
+	ptr[1] = gp0_xy(v0.x, v0.y);
+	ptr[2] = gp0_xy(v1.x, v1.y);
+	ptr[3] = gp0_xy(v2.x, v2.y);
+	ptr[4] = gp0_xy(v3.x, v3.y);
 }
 
 void Renderer::drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int z, uint32_t col) {
-    drawTexTri(tex, v0, v1, v2, uv0, uv1, uv2, z, col);
-    drawTexTri(tex, v1, v2, v3, uv3, uv0, uv2, z, col);
+    auto *ptr = allocatePacket(z, 10);
+	ptr[0]    = gp0_texpage(tex.page, false, false); // set texture page and CLUT
+    ptr[1]    = col | gp0_shadedQuad(false, true, false);
+    ptr[2]    = gp0_xy(v0.x, v0.y);
+    ptr[3]    = gp0_uv(uv0.x, uv0.y, 0);
+    ptr[4]    = gp0_xy(v1.x, v1.y);
+    ptr[5]    = gp0_uv(uv1.x, uv1.y, tex.page);
+    ptr[6]    = gp0_xy(v2.x, v2.y);
+    ptr[7]    = gp0_uv(uv2.x, uv2.y, 0);
+    ptr[8]    = gp0_xy(v3.x, v3.y);
+    ptr[9]    = gp0_uv(uv3.x, uv3.y, 0);
 }
 
 //correct
@@ -168,8 +181,7 @@ static const Face cubeFacesconv[6] = {
     { .indices = { 5, 4, 0, 1 }, .color = 0xffff00 }
 };
 
-
-void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ) {
+void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ, const TextureInfo &tex) {
 	gte_setControlReg(GTE_TRX,  tx);
 	gte_setControlReg(GTE_TRY,  ty);
 	gte_setControlReg(GTE_TRZ,  tz);
@@ -234,13 +246,27 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 			
 		}
 		else { //face is a quad
+			if (face->texid < 0) { //not textured 
 				auto ptr    = allocatePacket(zIndex, 5);
 				ptr[0] = face->color | gp0_shadedQuad(false, false, false);
 				ptr[1] = xy0;
 				gte_storeDataReg(GTE_SXY0, 2 * 4, ptr);
-	    		gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
+				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
 				gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
-
+			}
+			else { //textured 
+			    auto *ptr = allocatePacket(zIndex, 10);
+				ptr[0]    = gp0_texpage(tex.page, false, false); // set texture page and CLUT
+				ptr[1]    = face->color | gp0_shadedQuad(false, true, false);
+				ptr[2]    = xy0;
+				ptr[3]    = gp0_uv(face->u[0], face->v[0], 0);
+				gte_storeDataReg(GTE_SXY0, 4 * 4, ptr);
+				ptr[5]    = gp0_uv(face->u[1], face->v[1], tex.page);
+				gte_storeDataReg(GTE_SXY1, 6 * 4, ptr);
+				ptr[7]    = gp0_uv(face->u[2], face->v[2], 0);
+				gte_storeDataReg(GTE_SXY2, 8 * 4, ptr);
+				ptr[9]    = gp0_uv(face->u[3], face->v[3], 0);
+			}
 
 /*
 				//(A, B, C) and (B, C, D) respectively;
