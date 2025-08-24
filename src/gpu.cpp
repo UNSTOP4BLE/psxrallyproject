@@ -102,11 +102,15 @@ void Renderer::endFrame(void) {
     sendLinkedList(&(oldChain->orderingTable)[ORDERING_TABLE_SIZE - 1]);
 }
 
+static inline void addPacketData(uint32_t *ptr, int i, uint32_t p) {
+	ptr[i] = p;       
+}
+
 void Renderer::drawRect(Rect rect, int z, uint32_t col) {
 	auto ptr = allocatePacket(0, 3);
 	ptr[0]        = col | gp0_rectangle(false, false, false); 
 	ptr[1]        = gp0_xy(rect.x, rect.y);       
-	ptr[2]        = gp0_xy(rect.w, rect.h);     
+	ptr[2]        = gp0_xy(rect.w, rect.h);  
 }
 
 void Renderer::drawTexRect(const TextureInfo &tex, XY pos, int z, int col) {
@@ -142,7 +146,7 @@ void Renderer::drawQuad(XY v0, XY v1, XY v2, XY v3, int z, uint32_t col) {
 	auto ptr    = allocatePacket(z, 5);
 	ptr[0] = col | gp0_shadedQuad(false, false, false);
 	ptr[1] = gp0_xy(v0.x, v0.y);
-	ptr[2] = gp0_xy(v1.x, v1.y);
+	ptr[2] = gp0_xy(v1.x, v1.y);	
 	ptr[3] = gp0_xy(v2.x, v2.y);
 	ptr[4] = gp0_xy(v3.x, v3.y);
 }
@@ -160,26 +164,6 @@ void Renderer::drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, X
     ptr[8]    = gp0_xy(v3.x, v3.y);
     ptr[9]    = gp0_uv(uv3.x, uv3.y, 0);
 }
-
-//correct
-static const Face cubeFaces[6] = {
-    { .indices = {2, 6, 0, 4}, .color = 0x0000ff },
-    { .indices = {6, 2, 7, 3}, .color = 0x00ff00 },
-    { .indices = {6, 7, 4, 5}, .color = 0x00ffff },
-    { .indices = {7, 3, 5, 1}, .color = 0xff0000 },
-    { .indices = {3, 2, 1, 0}, .color = 0xff00ff },
-    { .indices = {5, 1, 4, 0}, .color = 0xffff00 }
-};
-
-//made by converter
-static const Face cubeFacesconv[6] = {
-    { .indices = { 0, 4, 6, 2 }, .color = 0x0000ff },
-    { .indices = { 3, 2, 6, 7 }, .color = 0x00ff00 },
-    { .indices = { 7, 6, 4, 5 }, .color = 0x00ffff },
-    { .indices = { 5, 1, 3, 7 }, .color = 0xff0000 },
-    { .indices = { 1, 0, 2, 3 }, .color = 0xff00ff },
-    { .indices = { 5, 4, 0, 1 }, .color = 0xffff00 }
-};
 
 void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ, const TextureInfo &tex) {
 	gte_setControlReg(GTE_TRX,  tx);
@@ -215,7 +199,7 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 
 		if (gte_getDataReg(GTE_MAC0) <= 0)
 			continue;
-
+		
 		// Save the first transformed vertex (the GTE only keeps the X/Y
 		// coordinates of the last 3 vertices processed and Z coordinates of
 		// the last 4 vertices processed) and apply projection to the last
@@ -236,16 +220,29 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 		// Create a new quad and give its vertices the X/Y coordinates
 		// calculated by the GTE.
 		if (istriangle) {//face is a triangle
-			auto ptr = allocatePacket(zIndex,6);
-			ptr[0] = gp0_shadedTriangle(true, false, false) | gp0_rgb(255, 0, 0);
-			ptr[1] = xy0;
-			ptr[2] = gp0_rgb(0, 255, 0);
-			gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
-			ptr[4] = gp0_rgb(0, 0, 255);
-			gte_storeDataReg(GTE_SXY2, 5 * 4, ptr);
-			
+			if (face->texid < 0) {// not textured
+				auto ptr = allocatePacket(zIndex,6);
+				ptr[0] = gp0_shadedTriangle(true, false, false) | gp0_rgb(255, 0, 0);
+				ptr[1] = xy0;
+				ptr[2] = gp0_rgb(0, 255, 0);
+				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
+				ptr[4] = gp0_rgb(0, 0, 255);
+				gte_storeDataReg(GTE_SXY2, 5 * 4, ptr);
+			}
+			else { //textured
+				auto *ptr = allocatePacket(zIndex, 8);
+				ptr[0]        = gp0_texpage(tex.page, false, false); // set texture page and CLUT
+				ptr[1]        = face->color | gp0_shadedTriangle(false, true, false);
+				ptr[2]        = xy0;
+				ptr[3]        = gp0_uv(face->u[0], face->v[0], 0);
+				gte_storeDataReg(GTE_SXY1, 4 * 4, ptr);
+				ptr[5]        = gp0_uv(face->u[1], face->v[1], tex.page);
+				gte_storeDataReg(GTE_SXY2, 6 * 4, ptr);
+				ptr[7]        = gp0_uv(face->u[2], face->v[2], 0);
+			}
 		}
 		else { //face is a quad
+			
 			if (face->texid < 0) { //not textured 
 				auto ptr    = allocatePacket(zIndex, 5);
 				ptr[0] = face->color | gp0_shadedQuad(false, false, false);
@@ -268,7 +265,7 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 				ptr[9]    = gp0_uv(face->u[3], face->v[3], 0);
 			}
 
-/*
+			/*
 				//(A, B, C) and (B, C, D) respectively;
 
 				//tri1
@@ -348,6 +345,7 @@ void uploadIndexedTexture(TextureInfo &info, const void *image, const void *pale
 	info.width  = (uint16_t) imgrect.w;
 	info.height = (uint16_t) imgrect.h;
 }
+
 const ModelFile* loadModel(const uint8_t* data) {
     // reinterpret header
     const ModelFileHeader* header = reinterpret_cast<const ModelFileHeader*>(data);

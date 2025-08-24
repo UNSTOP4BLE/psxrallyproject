@@ -6,9 +6,6 @@
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
-#define NUM_CUBE_VERTICES 8
-#define NUM_CUBE_FACES    12
-
 //spicy texture
 extern const uint8_t textureData[];
 extern const uint8_t mymodel[];
