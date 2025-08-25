@@ -41,13 +41,77 @@ def reorder_z_shape(indices):
     else:
         raise ValueError(f"Invalid face: {indices}")
 
+class Material:    
+    def __init__(self):
+        self.name = None
+        self.col = 0x808080 #default neutral gray, diffuse color
+        self.texture = None
+        self.texid = -1
+
+    def setcol(self, r, g, b):
+        r_int = int(max(0, min(1, float(r))) * 255)
+        g_int = int(max(0, min(1, float(g))) * 255)
+        b_int = int(max(0, min(1, float(b))) * 255)
+        self.col = (r_int << 16) | (g_int << 8) | b_int
+
+    def print_info(self):
+        print(f"Material Name: {self.name}")
+        print(f"Color (RGB): ", self.col)
+        print(f"Texture: {self.texture}")
+        print(f"Texture ID: {self.texid}")
+
+materials = []
 vertices = []
 uvs = []
 faces = []
+textures = []
 cwd = os.getcwd() + "/" 
 
-#read the obj file
+#open the obj file
 fin = open(sys.argv[1], 'r')
+
+#read the mtl file, this fucking sucks and needs a rewrite
+match = re.search(r"mtllib\s+(.+\.mtl)", fin.read())
+fin.seek(0) 
+mtl_file = match.group(1) if match else None
+print("material file:", mtl_file)
+
+if mtl_file is not None:
+    fmtl = open(cwd + mtl_file, 'r')
+    matlen = fmtl.read().count("newmtl")
+    fmtl.seek(0)
+    lines = fmtl.readlines()  #read all lines once cause im a idiot
+    line_index = 0
+    for i in range(matlen):  #loop x times
+        mtl = Material()
+        found_name = False
+        #read material data until the next newmtl or end of file
+        while line_index < len(lines):
+            line = lines[line_index]
+            data = line.split()
+            line_index += 1
+            if not data:  #skip empty lines
+                continue
+            if re.search("^newmtl ", line):
+                if found_name:  #if we already have a name, start a new material
+                    line_index -= 1  #rewind to process this newmtl in the next iteration
+                    break
+                mtl.name = data[1]
+                found_name = True
+            elif found_name and re.search("^Kd ", line):
+                mtl.setcol(data[1], data[2], data[3])
+            elif found_name and re.search("^map_Kd ", line):
+                textures.append(data[1])
+                mtl.texture = data[1]
+                mtl.texid = textures.index(data[1])
+        if found_name:  #only append if we found a material name
+            print("adding material", mtl.name)
+            materials.append(mtl)
+
+fin.seek(0) #reset pointer cause of fin.read()
+fmtl.close()
+
+#read the obj file
 curmat = None
 for line in fin.readlines():
     data = line.split()
@@ -69,10 +133,41 @@ for line in fin.readlines():
     #read faces 
     #change material if found
     if (re.search("^usemtl ", line)):
-        curmat = data[1]
-    
+        curmat = next((m for m in materials if m.name == data[1]), None)
+        print("using material", data[1])
     #faces 
     if (re.search("^f ", line)):
+        #indicie, uv indice, normal indice
+        #f 4/1/2 3/2/2 7/3/2 8/4/2
+        f = Face()
+        matches = re.findall(r'(\d+)/(\d+)/(\d+)', line)
+        #indices
+        vert_indices = [int(v)-1 for v, vt, vn in matches]
+        vert_indices = reorder_z_shape(vert_indices)
+        f.indices[:] = vert_indices 
+        f.color = 0x808080
+        f.texid = -1
+        #uv indices
+        uv_indices = [int(vt)-1 for v, vt, vn in matches]  
+        uv_indices = reorder_z_shape(uv_indices)
+
+        if curmat is not None:
+            f.color = curmat.col
+            if not curmat.texid < 0: #face is textured
+                tex = Image.open(cwd + curmat.texture)
+                width, height = tex.size
+                width -= 1
+                height -= 1
+                tex.close()
+                f.u[:] = [int(uvs[i][0]*width) for i in uv_indices]
+                f.v[:] = [int(uvs[i][1]*height) for i in uv_indices]
+                f.texid = curmat.texid
+                
+        
+        faces.append(f)
+
+
+        
 #read faces
 #for l in inlines:
 #    if l.startswith("usemtl "):
