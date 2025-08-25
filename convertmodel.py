@@ -166,19 +166,6 @@ for line in fin.readlines():
         
         faces.append(f)
 
-
-        
-#read faces
-#for l in inlines:
-#    if l.startswith("usemtl "):
-#        material = l.strip().split()[1]
-#        continue
-#    if (not l.startswith("f ")):
-#        continue
-
-#    indices = [int(p.split("/")[0]) - 1 for p in l.strip().split()[1:]]  # 0-based
-#    indices = reorder_z_shape(indices)
-
 fin.close()
 
 #make model file
