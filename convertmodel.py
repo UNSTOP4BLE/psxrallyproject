@@ -54,12 +54,6 @@ class Material:
         b_int = int(max(0, min(1, float(b))) * 255)
         self.col = (r_int << 16) | (g_int << 8) | b_int
 
-    def print_info(self):
-        print(f"Material Name: {self.name}")
-        print(f"Color (RGB): ", self.col)
-        print(f"Texture: {self.texture}")
-        print(f"Texture ID: {self.texid}")
-
 materials = []
 vertices = []
 uvs = []
