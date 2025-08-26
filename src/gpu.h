@@ -45,6 +45,11 @@ struct XY {
 	int32_t x,y;
 };
 
+struct [[gnu::packed]] TexHeader {
+	uint32_t texsize;
+	Rect pos;
+};
+
 struct [[gnu::packed]] ModelFileHeader {
     uint32_t magic;
     uint32_t numvertices, numfaces, numtex;
@@ -58,12 +63,16 @@ struct [[gnu::packed]] ModelFileHeader {
     inline const Face *faces(void) const {
         return reinterpret_cast<const Face *>(vertices() + numvertices);
     }
+	inline const uint8_t *textures(void) const {
+	    return reinterpret_cast<const uint8_t *>(faces() + numfaces);
+	}
 };
 
 struct [[gnu::packed]] ModelFile {
 	ModelFileHeader header;
     const GTEVector16 *vertices;
     const Face *faces;
+	TextureInfo *textures;
 };
 
 class Renderer {
@@ -79,7 +88,7 @@ public:
 	void drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int z, uint32_t col);
 	void drawQuad(XY v0, XY v1, XY v2, XY v3, int z, uint32_t col);
 	void drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int z, uint32_t col);
-	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ, const TextureInfo &tex);
+	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ);
 
 private:
 	bool usingSecondFrame;

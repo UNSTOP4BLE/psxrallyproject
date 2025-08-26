@@ -49,12 +49,53 @@ file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS
 # Remove commonlib subfolder
 list(FILTER SRC_FILES EXCLUDE REGEX ".*/commonlib/.*")
 
-
 addPS1Executable(PSXRallyProject ${SRC_FILES})
 
 convertImage(
-	assets/texture.png 16
-	assets/textureData.dat
+	assets/cascube/cas1.png 4
+	assets/cascube/cas1.dat
+	assets/cascube/cas1pallete.dat
 )
-addBinaryFile(PSXRallyProject textureData "${PROJECT_BINARY_DIR}/assets/textureData.dat")
-addBinaryFile(PSXRallyProject mymodel "cube.obj.mdl")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
+convertImage(
+	assets/cascube/cas2.png 4
+	assets/cascube/cas2.dat
+	assets/cascube/cas2pallete.dat
+)
+convertImage(
+	assets/cascube/cas3.png 4
+	assets/cascube/cas3.dat
+	assets/cascube/cas3pallete.dat
+)
+convertImage(
+	assets/cascube/cas4.png 4
+	assets/cascube/cas4.dat
+	assets/cascube/cas4pallete.dat
+)
+convertImage(
+	assets/cascube/cas5.png 4
+	assets/cascube/cas5.dat
+	assets/cascube/cas5pallete.dat
+)
+convertImage(
+	assets/cascube/cas6.png 4
+	assets/cascube/cas6.dat
+	assets/cascube/cas6pallete.dat
+)
+
+add_custom_target(converted_images ALL DEPENDS 
+    assets/cascube/cas1.dat
+    assets/cascube/cas2.dat
+    assets/cascube/cas3.dat
+    assets/cascube/cas4.dat
+    assets/cascube/cas5.dat
+    assets/cascube/cas6.dat)
+
+add_dependencies(PSXRallyProject converted_images)
+
+convertModel(
+	assets/cascube/cascube.obj #in 
+	assets/cascube/cascube.mdl #out 
+	assets/cascube #texture directory
+)
+
+addBinaryFile(PSXRallyProject mymodel "${PROJECT_BINARY_DIR}/assets/cascube/cascube.mdl")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")

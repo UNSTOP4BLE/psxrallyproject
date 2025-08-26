@@ -90,6 +90,20 @@ function(convertImage input bpp)
 	)
 endfunction()
 
+function(convertModel input output texdir)
+    add_custom_command(
+        OUTPUT "${output}"
+        DEPENDS "${PROJECT_SOURCE_DIR}/${input}"
+        COMMAND "${Python3_EXECUTABLE}"
+                "${PROJECT_SOURCE_DIR}/tools/convertModel.py"
+                "${PROJECT_SOURCE_DIR}/${input}"
+                "${PROJECT_BINARY_DIR}/${output}"
+                "${PROJECT_SOURCE_DIR}/${texdir}"
+                "${PROJECT_BINARY_DIR}/${texdir}"
+        VERBATIM
+    )
+endfunction()
+
 # Let CMake locate psxavenc automatically (or rely on the user overriding it by
 # passing -DPSXAVENC_PATH=...) and define a helper function to encode audio
 # samples if available.

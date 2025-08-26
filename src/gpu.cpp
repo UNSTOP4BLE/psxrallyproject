@@ -165,7 +165,7 @@ void Renderer::drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, X
     ptr[9]    = gp0_uv(uv3.x, uv3.y, 0);
 }
 
-void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ, const TextureInfo &tex) {
+void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ) {
 	gte_setControlReg(GTE_TRX,  tx);
 	gte_setControlReg(GTE_TRY,  ty);
 	gte_setControlReg(GTE_TRZ,  tz);
@@ -222,21 +222,22 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 		if (istriangle) {//face is a triangle
 			if (face->texid < 0) {// not textured
 				auto ptr = allocatePacket(zIndex,6);
-				ptr[0] = gp0_shadedTriangle(true, false, false) | gp0_rgb(255, 0, 0);
+				ptr[0] = face->color | gp0_shadedTriangle(true, false, false);
 				ptr[1] = xy0;
-				ptr[2] = gp0_rgb(0, 255, 0);
+				ptr[2] = face->color;
 				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
-				ptr[4] = gp0_rgb(0, 0, 255);
+				ptr[4] = face->color;
 				gte_storeDataReg(GTE_SXY2, 5 * 4, ptr);
 			}
 			else { //textured
+				auto page = model->textures[face->texid].page;
 				auto *ptr = allocatePacket(zIndex, 8);
-				ptr[0]        = gp0_texpage(tex.page, false, false); // set texture page and CLUT
+				ptr[0]        = gp0_texpage(page, false, false); // set texture page and CLUT
 				ptr[1]        = face->color | gp0_shadedTriangle(false, true, false);
 				ptr[2]        = xy0;
 				ptr[3]        = gp0_uv(face->u[0], face->v[0], 0);
 				gte_storeDataReg(GTE_SXY1, 4 * 4, ptr);
-				ptr[5]        = gp0_uv(face->u[1], face->v[1], tex.page);
+				ptr[5]        = gp0_uv(face->u[1], face->v[1], page);
 				gte_storeDataReg(GTE_SXY2, 6 * 4, ptr);
 				ptr[7]        = gp0_uv(face->u[2], face->v[2], 0);
 			}
@@ -252,13 +253,14 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 				gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
 			}
 			else { //textured 
+				auto page = model->textures[face->texid].page;
 			    auto *ptr = allocatePacket(zIndex, 10);
-				ptr[0]    = gp0_texpage(tex.page, false, false); // set texture page and CLUT
+				ptr[0]    = gp0_texpage(page, false, false); // set texture page and CLUT
 				ptr[1]    = face->color | gp0_shadedQuad(false, true, false);
 				ptr[2]    = xy0;
 				ptr[3]    = gp0_uv(face->u[0], face->v[0], 0);
 				gte_storeDataReg(GTE_SXY0, 4 * 4, ptr);
-				ptr[5]    = gp0_uv(face->u[1], face->v[1], tex.page);
+				ptr[5]    = gp0_uv(face->u[1], face->v[1], page);
 				gte_storeDataReg(GTE_SXY1, 6 * 4, ptr);
 				ptr[7]    = gp0_uv(face->u[2], face->v[2], 0);
 				gte_storeDataReg(GTE_SXY2, 8 * 4, ptr);
@@ -359,27 +361,23 @@ const ModelFile* loadModel(const uint8_t* data) {
     model.header = *header; 
 
     // vertices are right after the header
-    model.vertices = reinterpret_cast<const GTEVector16*>(header->vertices());
+    model.vertices = header->vertices();
 
     // faces are right after the vertices
-    model.faces = reinterpret_cast<const Face*>(header->faces());
+    model.faces = header->faces();
 
-    printf("Model Header:\n");
-    printf("  Magic: %u\n", model.header.magic);
-    printf("  Num Vertices: %u\n", model.header.numvertices);
-    printf("  Num Faces: %u\n", model.header.numfaces);
+	// textures are right after faces
+	auto texptr = header->textures();
 
-    printf("\nVertices:\n");
-    for (uint32_t i = 0; i < model.header.numvertices; i++) {
-        printf("  [%u] x=%d y=%d z=%d\n", i, model.vertices[i].x, model.vertices[i].y, model.vertices[i].z);
-    }
+	for (int i = 0; i < static_cast<int>(header->numtex); i++) {
+		// read header
+		TexHeader texheader = *reinterpret_cast<const TexHeader*>(texptr);
+		texptr += sizeof(TexHeader);
 
-    printf("\nFaces:\n");
-    for (uint32_t i = 0; i < model.header.numfaces; i++) {
-        const Face &f = model.faces[i];
-        printf("  [%u] indices: %u, %u, %u, %u  color: 0x%08X\n",
-            i, f.indices[0], f.indices[1], f.indices[2], f.indices[3], f.color);
-    }
+		const uint8_t* texdata = texptr; // texture data pointer
+		uploadTexture(model.textures[i], texdata, texheader.pos);
+		texptr += texheader.texsize;    
+	}
 
     return &model;
 }
