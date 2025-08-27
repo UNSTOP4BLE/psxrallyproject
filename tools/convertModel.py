@@ -34,17 +34,10 @@ class Face(ctypes.LittleEndianStructure):
 class ModelFileHeader(ctypes.LittleEndianStructure):
     _pack_ = 1 
     _fields_ = [
-        ("magic", ctypes.c_uint32),        #should be MODL
+        ("magic", ctypes.c_uint32), 
         ("numvertices", ctypes.c_uint32),   
         ("numfaces", ctypes.c_uint32),
         ("numtex", ctypes.c_uint32)
-    ]
-
-class TexHeader(ctypes.LittleEndianStructure):
-    _pack_ = 1 
-    _fields_ = [
-        ("texsize", ctypes.c_uint32),
-        ("pos", ctypes.c_int32*4)
     ]
 
 def reorder_z_shape(indices):
@@ -181,8 +174,7 @@ if __name__ == '__main__':
 
     header = ModelFileHeader()
     #magic number
-    header.magic = struct.unpack('<I', b'MODL')[0]
-
+    header.magic = int.from_bytes(b"XMDL", byteorder="little")
     header.numvertices = len(vertices)
     header.numfaces    = len(faces)
     header.numtex      = len(textures)
@@ -200,35 +192,15 @@ if __name__ == '__main__':
 
     #write textures
     if (header.numtex > 0): #check if any textures exist
-        fdata = open(sys.argv[1].replace(".obj", ".texdata"), 'r') #texdata file
-        for i in range(header.numtex):
+        for mat in materials:
             #read converted texture
-            texpath = textures[i]
-            texname = os.path.splitext(os.path.basename(texpath))[0] + ".dat"  #just the file name with .dat
+            texpath = mat.texture
+            texname = os.path.splitext(os.path.basename(texpath))[0] + ".xtex"  #just the file name with .xtex
             texpath = os.path.join(sys.argv[4], texname)
         
             print("writing texture", texpath)
             ftex = open(texpath, 'rb')
-
             texdata = ftex.read()
-            ftex.close()
-
-            vrampos = []
-            for line in fdata.readlines():
-                data = line.split()
-                if (data[0] == texname):
-                    vrampos = [int(data[1]), int(data[2]), int(data[3]), int(data[4])]
-                    fdata.seek(0)
-                    break
-
-            if (vrampos == []):
-                error("failed to find vram data for", texname)
-
-            texheader = TexHeader()
-            texheader.texsize = len(texdata)
-            texheader.pos[:] = vrampos
-            
-            fout.write(texheader)
             fout.write(texdata)
-        fdata.close()
+            ftex.close()
     fout.close()

@@ -6,6 +6,7 @@
 #include "ps1/gpucmd.h"
 #include "ps1/registers.h"
 
+extern const uint8_t mytex[];
 extern const uint8_t mymodel[];
 
 int main(int argc, const char **argv) {
@@ -23,12 +24,15 @@ int main(int argc, const char **argv) {
 
 	GTE::setupGTE(SCREEN_WIDTH, SCREEN_HEIGHT);
 
+	//GFX::TextureInfo info;
+	//GFX::uploadIndexedTexture(info, mytex);
     auto model = GFX::loadModel(mymodel);
 	int x = 0;
 	while(1) {
 		renderer.beginFrame();
 		
 		x += 10;
+	//	renderer.drawTexRect(info, {0, 0}, 0, 0x808080);
     	renderer.drawModel(model,
         	  0, 0, 0,                  // translation
               0, x, 90);

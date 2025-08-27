@@ -76,15 +76,16 @@ function(addPS1ExecutableAdv name loadAddress stackTop region)
 	)
 endfunction()
 
-function(convertImage input bpp)
+function(convertImage input output vram)
 	add_custom_command(
-		OUTPUT  ${ARGN}
+		OUTPUT  "${output}"
 		DEPENDS "${PROJECT_SOURCE_DIR}/${input}"
 		COMMAND
 			"${Python3_EXECUTABLE}"
 			"${PROJECT_SOURCE_DIR}/tools/convertImage.py"
-			-b ${bpp}
 			"${PROJECT_SOURCE_DIR}/${input}"
+			"${PROJECT_BINARY_DIR}/${output}"
+			"${PROJECT_SOURCE_DIR}/${vram}"
 			${ARGN}
 		VERBATIM
 	)

@@ -23,12 +23,6 @@ struct DMAChain {
 	uint32_t *nextPacket;
 };
 
-struct TextureInfo {
-	uint8_t  u, v;
-	uint16_t width, height;
-	uint16_t page, clut;
-};
-
 struct Face {
     int16_t indices[4]; // indices into model->vertices[], last one is negative if its a triangle
     uint32_t color;      // base color (for modulation or flat shading)
@@ -45,9 +39,30 @@ struct XY {
 	int32_t x,y;
 };
 
+struct [[gnu::packed]] TextureInfo {
+	uint8_t  u, v;
+	uint16_t width, height;
+	uint16_t page, clut;
+	uint16_t bpp;
+};
+
 struct [[gnu::packed]] TexHeader {
-	uint32_t texsize;
-	Rect pos;
+	uint32_t magic;
+	TextureInfo texinfo;
+	uint16_t vrampos[2];
+	uint16_t clutpos[2];
+	uint16_t clutsize;
+	uint16_t texsize;
+
+    inline bool isValid(void) const {
+        return magic == (('X' << 24) | ('T' << 16) | ('E' << 8) | 'X');
+    }
+    inline const uint16_t *clut(void) const {
+        return reinterpret_cast<const uint16_t *>(this + 1);
+    }
+    inline const uint8_t *texdata(void) const {
+        return reinterpret_cast<const uint8_t *>(clut() + clutsize);
+    }
 };
 
 struct [[gnu::packed]] ModelFileHeader {
@@ -55,7 +70,7 @@ struct [[gnu::packed]] ModelFileHeader {
     uint32_t numvertices, numfaces, numtex;
 
     inline bool isValid(void) const {
-        return magic == (('M' << 24) | ('O' << 16) | ('D' << 8) | 'L');
+        return magic == (('X' << 24) | ('M' << 16) | ('D' << 8) | 'L');
     }
     inline const GTEVector16 *vertices(void) const {
         return reinterpret_cast<const GTEVector16 *>(this + 1);
@@ -102,8 +117,7 @@ private:
 	uint32_t *allocatePacket(int zIndex, int numCommands);
 };
 
-void uploadTexture(TextureInfo &info, const void *data, Rect pos);
-void uploadIndexedTexture(TextureInfo &info, const void *image, const void *palette, int imageX, int imageY, int paletteX, int paletteY, int width, int height, GP0ColorDepth colorDepth);
+void uploadIndexedTexture(TextureInfo &info, const void *image);
 const ModelFile *loadModel(const uint8_t *data);
 
 }

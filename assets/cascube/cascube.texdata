@@ -1,7 +1,0 @@
-#texture name, vram position, width, height
-cas1.dat 640   0 128 128
-cas2.dat 640 128 128 128
-cas3.dat 768   0 128 128
-cas4.dat 768 128 128 128
-cas5.dat 896   0 128 128
-cas6.dat 896 128 128 128

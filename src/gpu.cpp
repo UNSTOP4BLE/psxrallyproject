@@ -107,18 +107,18 @@ static inline void addPacketData(uint32_t *ptr, int i, uint32_t p) {
 }
 
 void Renderer::drawRect(Rect rect, int z, uint32_t col) {
-	auto ptr = allocatePacket(0, 3);
+	auto ptr      = allocatePacket(z, 3);
 	ptr[0]        = col | gp0_rectangle(false, false, false); 
 	ptr[1]        = gp0_xy(rect.x, rect.y);       
 	ptr[2]        = gp0_xy(rect.w, rect.h);  
 }
 
 void Renderer::drawTexRect(const TextureInfo &tex, XY pos, int z, int col) {
-	auto ptr = allocatePacket(0, 5);
+	auto ptr = allocatePacket(z, 5);
 	ptr[0]        = gp0_texpage(tex.page, false, false);
 	ptr[1]        = col | gp0_rectangle(true, true, false);
 	ptr[2]        = gp0_xy(pos.x, pos.y);
-	ptr[3]        = gp0_uv(tex.u, tex.v, 0);
+	ptr[3]        = gp0_uv(tex.u, tex.v, tex.clut);
 	ptr[4]        = gp0_xy(tex.width, tex.height);
 }
 
@@ -135,7 +135,7 @@ void Renderer::drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, X
 	ptr[0]        = gp0_texpage(tex.page, false, false); // set texture page and CLUT
     ptr[1]        = col | gp0_shadedTriangle(false, true, false);
     ptr[2]        = gp0_xy(v0.x, v0.y);
-    ptr[3]        = gp0_uv(uv0.x, uv0.y, 0);
+    ptr[3]        = gp0_uv(uv0.x, uv0.y, tex.clut);
     ptr[4]        = gp0_xy(v1.x, v1.y);
     ptr[5]        = gp0_uv(uv1.x, uv1.y, tex.page);
     ptr[6]        = gp0_xy(v2.x, v2.y);
@@ -156,7 +156,7 @@ void Renderer::drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, X
 	ptr[0]    = gp0_texpage(tex.page, false, false); // set texture page and CLUT
     ptr[1]    = col | gp0_shadedQuad(false, true, false);
     ptr[2]    = gp0_xy(v0.x, v0.y);
-    ptr[3]    = gp0_uv(uv0.x, uv0.y, 0);
+    ptr[3]    = gp0_uv(uv0.x, uv0.y, tex.clut);
     ptr[4]    = gp0_xy(v1.x, v1.y);
     ptr[5]    = gp0_uv(uv1.x, uv1.y, tex.page);
     ptr[6]    = gp0_xy(v2.x, v2.y);
@@ -230,12 +230,13 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 				gte_storeDataReg(GTE_SXY2, 5 * 4, ptr);
 			}
 			else { //textured
+				auto clut = model->textures[face->texid].clut;
 				auto page = model->textures[face->texid].page;
 				auto *ptr = allocatePacket(zIndex, 8);
 				ptr[0]        = gp0_texpage(page, false, false); // set texture page and CLUT
 				ptr[1]        = face->color | gp0_shadedTriangle(false, true, false);
 				ptr[2]        = xy0;
-				ptr[3]        = gp0_uv(face->u[0], face->v[0], 0);
+				ptr[3]        = gp0_uv(face->u[0], face->v[0], clut);
 				gte_storeDataReg(GTE_SXY1, 4 * 4, ptr);
 				ptr[5]        = gp0_uv(face->u[1], face->v[1], page);
 				gte_storeDataReg(GTE_SXY2, 6 * 4, ptr);
@@ -253,12 +254,13 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 				gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
 			}
 			else { //textured 
+				auto clut = model->textures[face->texid].clut;
 				auto page = model->textures[face->texid].page;
 			    auto *ptr = allocatePacket(zIndex, 10);
 				ptr[0]    = gp0_texpage(page, false, false); // set texture page and CLUT
 				ptr[1]    = face->color | gp0_shadedQuad(false, true, false);
 				ptr[2]    = xy0;
-				ptr[3]    = gp0_uv(face->u[0], face->v[0], 0);
+				ptr[3]    = gp0_uv(face->u[0], face->v[0], clut);
 				gte_storeDataReg(GTE_SXY0, 4 * 4, ptr);
 				ptr[5]    = gp0_uv(face->u[1], face->v[1], page);
 				gte_storeDataReg(GTE_SXY1, 6 * 4, ptr);
@@ -308,56 +310,31 @@ uint32_t *Renderer::allocatePacket(int zIndex, int numCommands) {
     return &ptr[1];
 }
 
-void uploadTexture(TextureInfo &info, const void *data, Rect pos) {
-	assert((pos.w <= 256) && (pos.h <= 256));
+//indexed
+void uploadTexture(TextureInfo &info, const void *image) {
+    const TexHeader* header = reinterpret_cast<const TexHeader*>(image);
+	assert(header->isValid());
+	info = header->texinfo;
 
-	sendVRAMData(data, pos);
+	assert((info.width <= 256) && (info.height <= 256));
+
+	int numColors = (info.bpp == 8) ? 256 : 16;
+	int widthDivider = (info.bpp == 8) ? 2 : 4;
+
+	sendVRAMData(header->texdata(), {header->vrampos[0], header->vrampos[1], info.width / widthDivider, info.height});
 	waitForDMADone();
-
-	info.page   = gp0_page(
-		pos.x /  64,
-		pos.y / 256,
-		GP0_BLEND_SEMITRANS,
-		GP0_COLOR_16BPP
-	);
-	info.clut   = 0;
-	info.u      = (uint8_t)  (pos.x %  64);
-	info.v      = (uint8_t)  (pos.y % 256);
-	info.width  = (uint16_t) pos.w;
-	info.height = (uint16_t) pos.h;
-}
-
-void uploadIndexedTexture(TextureInfo &info, const void *image, const void *palette, XY palleteXY, Rect imgrect, GP0ColorDepth colorDepth) {
-	assert((imgrect.w <= 256) && (imgrect.h <= 256));
-
-	int numColors    = (colorDepth == GP0_COLOR_8BPP) ? 256 : 16;
-	int widthDivider = (colorDepth == GP0_COLOR_8BPP) ?   2 :  4;
-
-	assert(!(palleteXY.x % 16) && ((palleteXY.x + numColors) <= 1024));
-
-	sendVRAMData(image, {imgrect.x, imgrect.y, imgrect.w / widthDivider, imgrect.h});
+	sendVRAMData(header->clut(), {header->clutpos[0], header->clutpos[1], numColors, 1});
 	waitForDMADone();
-	sendVRAMData(palette, {palleteXY.x, palleteXY.y, numColors, 1});
-	waitForDMADone();
-
-	info.page   = gp0_page(imgrect.x / 64, imgrect.y / 256, GP0_BLEND_SEMITRANS, colorDepth);
-	info.clut   = gp0_clut(palleteXY.x / 16, palleteXY.y);
-	info.u      = (uint8_t)  ((imgrect.x %  64) * widthDivider);
-	info.v      = (uint8_t)   (imgrect.y % 256);
-	info.width  = (uint16_t) imgrect.w;
-	info.height = (uint16_t) imgrect.h;
 }
 
 const ModelFile* loadModel(const uint8_t* data) {
     // reinterpret header
     const ModelFileHeader* header = reinterpret_cast<const ModelFileHeader*>(data);
- //   if (!header->isValid()) {
-   //     printf("Invalid model!\n");
-    //    return nullptr;
-    //}
+	printf("magic %d", header->magic);
+	assert(header->isValid());
 
     // set up ModelFile
-    static ModelFile model; // or malloc if you prefer
+    static ModelFile model; 
     model.header = *header; 
 
     // vertices are right after the header
@@ -368,15 +345,21 @@ const ModelFile* loadModel(const uint8_t* data) {
 
 	// textures are right after faces
 	auto texptr = header->textures();
+    const uint8_t* base = texptr; // start of texture section
+
 
 	for (int i = 0; i < static_cast<int>(header->numtex); i++) {
-		// read header
-		TexHeader texheader = *reinterpret_cast<const TexHeader*>(texptr);
-		texptr += sizeof(TexHeader);
+		const TexHeader* texheader = reinterpret_cast<const TexHeader*>(texptr);
+		printf("%d", texptr - base);
+		assert(texheader->isValid());
+		// read header and upload texture
+		uploadTexture(model.textures[i], texptr);
+		
+		// advance pointer: sizeof(TexHeader) + clutsize*2 bytes + texture data
+		size_t clut_bytes = texheader->clutsize * sizeof(uint16_t);
+		size_t tex_bytes = texheader->texsize;
 
-		const uint8_t* texdata = texptr; // texture data pointer
-		uploadTexture(model.textures[i], texdata, texheader.pos);
-		texptr += texheader.texsize;    
+		texptr += sizeof(TexHeader) + clut_bytes + tex_bytes;
 	}
 
     return &model;

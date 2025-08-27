@@ -50,52 +50,58 @@ file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS
 list(FILTER SRC_FILES EXCLUDE REGEX ".*/commonlib/.*")
 
 addPS1Executable(PSXRallyProject ${SRC_FILES})
+convertImage(
+    assets/cascube/cas1.png
+    assets/cascube/cas1.xtex
+    assets/cascube/cas1.vram
+)
+convertImage(
+    assets/cascube/cas2.png
+    assets/cascube/cas2.xtex
+    assets/cascube/cas2.vram
+)
+convertImage(
+    assets/cascube/cas3.png
+    assets/cascube/cas3.xtex
+    assets/cascube/cas3.vram
+)
+convertImage(
+    assets/cascube/cas4.png
+    assets/cascube/cas4.xtex
+    assets/cascube/cas4.vram
+)
+convertImage(
+    assets/cascube/cas5.png
+    assets/cascube/cas5.xtex
+    assets/cascube/cas5.vram
+)
+convertImage(
+    assets/cascube/cas6.png
+    assets/cascube/cas6.xtex
+    assets/cascube/cas6.vram
+)
 
-convertImage(
-	assets/cascube/cas1.png 4
-	assets/cascube/cas1.dat
-	assets/cascube/cas1pallete.dat
-)
-convertImage(
-	assets/cascube/cas2.png 4
-	assets/cascube/cas2.dat
-	assets/cascube/cas2pallete.dat
-)
-convertImage(
-	assets/cascube/cas3.png 4
-	assets/cascube/cas3.dat
-	assets/cascube/cas3pallete.dat
-)
-convertImage(
-	assets/cascube/cas4.png 4
-	assets/cascube/cas4.dat
-	assets/cascube/cas4pallete.dat
-)
-convertImage(
-	assets/cascube/cas5.png 4
-	assets/cascube/cas5.dat
-	assets/cascube/cas5pallete.dat
-)
-convertImage(
-	assets/cascube/cas6.png 4
-	assets/cascube/cas6.dat
-	assets/cascube/cas6pallete.dat
-)
 
 add_custom_target(converted_images ALL DEPENDS 
-    assets/cascube/cas1.dat
-    assets/cascube/cas2.dat
-    assets/cascube/cas3.dat
-    assets/cascube/cas4.dat
-    assets/cascube/cas5.dat
-    assets/cascube/cas6.dat)
+    assets/cascube/cas1.xtex
+    assets/cascube/cas2.xtex
+    assets/cascube/cas3.xtex
+    assets/cascube/cas4.xtex
+    assets/cascube/cas5.xtex
+    assets/cascube/cas6.xtex)
 
 add_dependencies(PSXRallyProject converted_images)
 
 convertModel(
 	assets/cascube/cascube.obj #in 
-	assets/cascube/cascube.mdl #out 
+	assets/cascube/cascube.xmdl #out 
 	assets/cascube #texture directory
 )
+addBinaryFile(PSXRallyProject mymodel "${PROJECT_BINARY_DIR}/assets/cascube/cascube.xmdl")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
 
-addBinaryFile(PSXRallyProject mymodel "${PROJECT_BINARY_DIR}/assets/cascube/cascube.mdl")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
+convertImage(
+	assets/spicycube/texture.png
+ 	assets/spicycube/texture.xtex
+ 	assets/spicycube/texture.vram
+)
+addBinaryFile(PSXRallyProject mytex "${PROJECT_BINARY_DIR}/assets/spicycube/texture.xtex")

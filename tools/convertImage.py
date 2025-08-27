@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""PlayStation 1 image/texture data converter
-
-A simple script to convert image files into either raw 16bpp RGB data as
-expected by the PS1's GPU, or 4bpp or 8bpp indexed color data plus a separate
-16bpp color palette. Requires PIL/Pillow and NumPy to be installed.
-"""
-
 __version__ = "0.2.0"
 __author__  = "spicyjpeg"
 
@@ -16,6 +9,59 @@ from argparse import ArgumentParser, FileType, Namespace
 import numpy
 from numpy import ndarray
 from PIL   import Image
+import struct
+import ctypes 
+from enum import IntEnum
+
+class TextureInfo(ctypes.LittleEndianStructure):
+    _pack_ = 1 
+    _fields_ = [
+        ("u", ctypes.c_uint8),
+        ("v", ctypes.c_uint8),
+        ("width", ctypes.c_uint16),
+        ("height", ctypes.c_uint16),
+        ("page", ctypes.c_uint16),
+        ("clut", ctypes.c_uint16),
+        ("bpp", ctypes.c_uint16)
+    ]
+
+class TexHeader(ctypes.LittleEndianStructure):
+    _pack_ = 1 
+    _fields_ = [
+        ("magic", ctypes.c_uint32),
+        ("texinfo", TextureInfo),
+        ("vrampos", ctypes.c_uint16*2), 
+        ("clutpos", ctypes.c_uint16*2), 
+        ("clutsize", ctypes.c_uint16), 
+        ("texsize", ctypes.c_uint16) 
+    ]
+
+class GP0BlendMode(IntEnum):
+    GP0_BLEND_SEMITRANS = 0
+    GP0_BLEND_ADD       = 1
+    GP0_BLEND_SUBTRACT  = 2
+    GP0_BLEND_DIV4_ADD  = 3
+
+class GP0ColorDepth(IntEnum):
+    GP0_COLOR_4BPP  = 0
+    GP0_COLOR_8BPP  = 1
+    GP0_COLOR_16BPP = 2
+
+def gp0_page(x: int, y: int, blend_mode: GP0BlendMode, color_depth: GP0ColorDepth) -> int:
+    return (
+        ((x          & 0xF) << 0)  |
+        ((y          & 0x1) << 4)  |
+        ((blend_mode & 0x3) << 5)  |
+        ((color_depth & 0x3) << 7) |
+        ((y          & 0x2) << 10)
+    ) & 0xFFFF
+
+def gp0_clut(x: int, y: int) -> int:
+    return (
+        ((x & 0x03F) << 0) |
+        ((y & 0x3FF) << 6)
+    ) & 0xFFFF
+
 
 ## Input image handling
 
@@ -152,12 +198,7 @@ def convertIndexedImage(
 ## Main
 
 def createParser() -> ArgumentParser:
-	parser = ArgumentParser(
-		description = \
-			"Converts an image file into raw 16bpp image data, or 4bpp or 8bpp "
-			"indexed color data plus a 16bpp palette.",
-		add_help    = False
-	)
+	parser = ArgumentParser(description = "Converts an image file into 4bpp or 8bpp", add_help = False)
 
 	group = parser.add_argument_group("Tool options")
 	group.add_argument(
@@ -168,16 +209,6 @@ def createParser() -> ArgumentParser:
 
 	group = parser.add_argument_group("Conversion options")
 	group.add_argument(
-		"-b", "--bpp",
-		type    = int,
-		choices = ( 4, 8, 16 ),
-		default = 16,
-		help    = \
-			"Use specified color depth (4/8bpp indexed color or 16bpp RGB, "
-			"default 16bpp)",
-		metavar = "4|8|16"
-	)
-	group.add_argument(
 		"-s", "--force-stp",
 		action = "store_true",
 		help   = \
@@ -186,22 +217,9 @@ def createParser() -> ArgumentParser:
 	)
 
 	group = parser.add_argument_group("File paths")
-	group.add_argument(
-		"input",
-		type = Image.open,
-		help = "Path to input image file"
-	)
-	group.add_argument(
-		"imageOutput",
-		type = FileType("wb"),
-		help = "Path to raw image data file to generate"
-	)
-	group.add_argument(
-		"clutOutput",
-		type  = FileType("wb"),
-		nargs = "?",
-		help  = "Path to raw palette data file to generate"
-	)
+	group.add_argument("input", type = Image.open, help = "Path to input image file")
+	group.add_argument("imageOutput", type = FileType("wb"), help = "Path to raw image data file to generate")
+	group.add_argument("vram", type = FileType("r"), help = "Vram data")
 
 	return parser
 
@@ -209,24 +227,54 @@ def main():
 	parser: ArgumentParser = createParser()
 	args:   Namespace      = parser.parse_args()
 
-	if args.bpp == 16:
-		imageData: ndarray = numpy.asarray(args.input)
-		imageData          = to16bpp(imageData, args.force_stp)
-	else:
-		try:
-			image: Image.Image = quantizeImage(args.input, 2 ** args.bpp)
-		except RuntimeError as err:
-			parser.error(err.args[0])
+	vram = args.vram.read().split()
+	vram = list(map(int, vram))
+	bpp = vram[4]
 
-		imageData, clutData = convertIndexedImage(image, args.force_stp)
+	try:
+		image: Image.Image = quantizeImage(args.input, 2 ** bpp)
+	except RuntimeError as err:
+		parser.error(err.args[0])
 
-		if args.clutOutput is None:
-			parser.error("path to palette data must be specified")
-		with args.clutOutput as file:
-			file.write(clutData)
+	imageData, clutData = convertIndexedImage(image, args.force_stp)
 
-	with args.imageOutput as file:
-		file.write(imageData)
+	header = TexHeader()
+	header.magic = int.from_bytes(b"XTEX", byteorder="little")
+	info = TextureInfo()
+
+	header.vrampos[:] = [vram[0], vram[1]]
+	header.clutpos[:] = [vram[2], vram[3]]
+
+	width_divider = 2 if bpp == 8 else 4
+	colordepth = GP0ColorDepth.GP0_COLOR_8BPP if bpp == 8 else GP0ColorDepth.GP0_COLOR_4BPP
+	#vram = [x,y, palx, paly, bpp]
+	if (vram[2] % 16) != 0:
+		raise ValueError("CLUT alignment invalid")
+	if (vram[2] + clutData.size) > 1024:
+		raise ValueError("Pallete clipping vram")
+	
+	info.page   = gp0_page(vram[0] // 64, vram[1] // 256, 0, colordepth)
+	info.clut   = gp0_clut(vram[2] // 16, vram[3])
+	info.u      = (vram[0] %  64) * width_divider
+	info.v      = (vram[1] % 256)
+	info.width  = image.size[0]
+	info.height = image.size[1] 
+	info.bpp    = bpp
+
+	print(info.height)
+	header.texinfo = info 
+	header.clutsize = clutData.size
+	header.texsize = imageData.size
+
+	print(header.clutsize)
+	print(header.texsize)
+
+	file = args.imageOutput
+	file.write(header)
+	file.write(clutData)
+	file.write(imageData)
+
+	file.close()
 
 if __name__ == "__main__":
 	main()
