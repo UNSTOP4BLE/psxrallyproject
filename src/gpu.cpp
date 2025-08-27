@@ -330,7 +330,6 @@ void uploadTexture(TextureInfo &info, const void *image) {
 const ModelFile* loadModel(const uint8_t* data) {
     // reinterpret header
     const ModelFileHeader* header = reinterpret_cast<const ModelFileHeader*>(data);
-	printf("magic %d", header->magic);
 	assert(header->isValid());
 
     // set up ModelFile

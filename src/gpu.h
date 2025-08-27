@@ -55,7 +55,7 @@ struct [[gnu::packed]] TexHeader {
 	uint16_t texsize;
 
     inline bool isValid(void) const {
-        return magic == (('X' << 24) | ('T' << 16) | ('E' << 8) | 'X');
+        return magic == ('X' | ('T' << 8) | ('E' << 16) | ('X' << 24));
     }
     inline const uint16_t *clut(void) const {
         return reinterpret_cast<const uint16_t *>(this + 1);
@@ -70,7 +70,7 @@ struct [[gnu::packed]] ModelFileHeader {
     uint32_t numvertices, numfaces, numtex;
 
     inline bool isValid(void) const {
-        return magic == (('X' << 24) | ('M' << 16) | ('D' << 8) | 'L');
+        return magic == ('X' | ('M' << 8) | ('D' << 16) | ('L' << 24));
     }
     inline const GTEVector16 *vertices(void) const {
         return reinterpret_cast<const GTEVector16 *>(this + 1);
