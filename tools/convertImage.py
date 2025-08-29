@@ -9,7 +9,6 @@ from argparse import ArgumentParser, FileType, Namespace
 import numpy
 from numpy import ndarray
 from PIL   import Image
-import struct
 import ctypes 
 from enum import IntEnum
 
@@ -228,7 +227,7 @@ def main():
 	args:   Namespace      = parser.parse_args()
 
 	vram = args.vram.read().split()
-	vram = list(map(int, vram))
+	vram = vram = [eval(value) for value in vram]
 	bpp = vram[4]
 
 	try:
@@ -261,13 +260,9 @@ def main():
 	info.height = image.size[1] 
 	info.bpp    = bpp
 
-	print(info.height)
 	header.texinfo = info 
-	header.clutsize = clutData.size
-	header.texsize = imageData.size
-
-	print(header.clutsize)
-	print(header.texsize)
+	header.clutsize = clutData.nbytes
+	header.texsize = imageData.nbytes
 
 	file = args.imageOutput
 	file.write(header)

@@ -65,8 +65,8 @@ void rotateCurrentMatrix(int yaw, int pitch, int roll) {
 	// GTE's current matrix by multiplying the two and writing the result back
 	// to the GTE's registers.
 	if (yaw) {
-		s = isin(yaw);
-		c = icos(yaw);
+		s = TRIG::isin(yaw);
+		c = TRIG::icos(yaw);
 
 		gte_setColumnVectors(
 			c, -s,   0,
@@ -77,8 +77,8 @@ void rotateCurrentMatrix(int yaw, int pitch, int roll) {
 		gte_loadRotationMatrix(&multiplied);
 	}
 	if (pitch) {
-		s = isin(pitch);
-		c = icos(pitch);
+		s = TRIG::isin(pitch);
+		c = TRIG::icos(pitch);
 
 		gte_setColumnVectors(
 			 c,   0, s,
@@ -89,8 +89,8 @@ void rotateCurrentMatrix(int yaw, int pitch, int roll) {
 		gte_loadRotationMatrix(&multiplied);
 	}
 	if (roll) {
-		s = isin(roll);
-		c = icos(roll);
+		s = TRIG::isin(roll);
+		c = TRIG::icos(roll);
 
 		gte_setColumnVectors(
 			ONE, 0,  0,

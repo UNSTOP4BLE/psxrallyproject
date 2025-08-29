@@ -80,13 +80,12 @@ function(convertImage input output vram)
 	add_custom_command(
 		OUTPUT  "${output}"
 		DEPENDS "${PROJECT_SOURCE_DIR}/${input}"
-		COMMAND
-			"${Python3_EXECUTABLE}"
-			"${PROJECT_SOURCE_DIR}/tools/convertImage.py"
-			"${PROJECT_SOURCE_DIR}/${input}"
-			"${PROJECT_BINARY_DIR}/${output}"
-			"${PROJECT_SOURCE_DIR}/${vram}"
-			${ARGN}
+		COMMAND "${Python3_EXECUTABLE}"
+				"${PROJECT_SOURCE_DIR}/tools/convertImage.py"
+				"${PROJECT_SOURCE_DIR}/${input}"
+				"${PROJECT_BINARY_DIR}/${output}"
+				"${PROJECT_SOURCE_DIR}/${vram}"
+				${ARGN}
 		VERBATIM
 	)
 endfunction()
@@ -99,8 +98,19 @@ function(convertModel input output texdir)
                 "${PROJECT_SOURCE_DIR}/tools/convertModel.py"
                 "${PROJECT_SOURCE_DIR}/${input}"
                 "${PROJECT_BINARY_DIR}/${output}"
-                "${PROJECT_SOURCE_DIR}/${texdir}"
                 "${PROJECT_BINARY_DIR}/${texdir}"
+        VERBATIM
+    )
+endfunction()
+
+function(convertFont input output)
+    add_custom_command(
+        OUTPUT "${output}"
+        DEPENDS "${PROJECT_SOURCE_DIR}/${input}"
+        COMMAND "${Python3_EXECUTABLE}"
+                "${PROJECT_SOURCE_DIR}/tools/convertFont.py"
+                "${PROJECT_SOURCE_DIR}/${input}"
+                "${PROJECT_BINARY_DIR}/${output}"
         VERBATIM
     )
 endfunction()

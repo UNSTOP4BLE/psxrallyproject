@@ -11,7 +11,7 @@
 namespace GFX {
 
 #define DMA_MAX_CHUNK_SIZE    16
-#define CHAIN_BUFFER_SIZE   8192
+#define CHAIN_BUFFER_SIZE   4104
 #define ORDERING_TABLE_SIZE  3072
 
 #define SCREEN_WIDTH  320
@@ -31,14 +31,21 @@ struct Face {
     int32_t texid;       // texpage id, -1 for untextured
 };
 
-struct Rect {
-	int32_t x,y,w,h;
+template<typename T>
+struct [[gnu::packed]] RECT {
+    T x, y, w, h;
+
+    RECT() = default;
+    RECT(T _x, T _y, T _w, T _h) : x(_x), y(_y), w(_w), h(_h) {}
 };
 
-struct XY {
-	int32_t x,y;
-};
+template<typename T>
+struct [[gnu::packed]] XY {
+    T x, y;
 
+    XY() = default;
+    XY(T _x, T _y) : x(_x), y(_y) {}
+};
 struct [[gnu::packed]] TextureInfo {
 	uint8_t  u, v;
 	uint16_t width, height;
@@ -61,7 +68,7 @@ struct [[gnu::packed]] TexHeader {
         return reinterpret_cast<const uint16_t *>(this + 1);
     }
     inline const uint8_t *texdata(void) const {
-        return reinterpret_cast<const uint8_t *>(clut() + clutsize);
+        return reinterpret_cast<const uint8_t *>(clut() + (clutsize / sizeof(uint16_t)));
     }
 };
 
@@ -84,10 +91,32 @@ struct [[gnu::packed]] ModelFileHeader {
 };
 
 struct [[gnu::packed]] ModelFile {
-	ModelFileHeader header;
+	const ModelFileHeader *header;
     const GTEVector16 *vertices;
     const Face *faces;
 	TextureInfo *textures;
+};
+
+struct [[gnu::packed]] FontHeader {
+    uint32_t magic; 
+    uint8_t firstchar; 
+    uint8_t spacewidth; 
+    uint8_t tabwidth; 
+    uint8_t lineheight; 
+    uint8_t numchars; 
+    uint8_t _padding[3]; 
+
+    inline bool isValid(void) const {
+        return magic == ('X' | ('F' << 8) | ('N' << 16) | ('T' << 24));
+    }
+    inline const GFX::RECT<uint8_t> *rects(void) const {
+        return reinterpret_cast<const GFX::RECT<uint8_t> *>(this + 1);
+    }
+};
+
+struct [[gnu::packed]] FontData {
+    const FontHeader *header;
+    const GFX::RECT<uint8_t> *rects; 
 };
 
 class Renderer {
@@ -97,14 +126,17 @@ public:
 	void beginFrame(void);
 	void endFrame(void);
 
-	void drawRect(Rect rect, int z, uint32_t col);
-	void drawTexRect(const TextureInfo &tex, XY pos, int z, int col);
-	void drawTri(XY v0, XY v1, XY v2, int z, uint32_t col);
-	void drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int z, uint32_t col);
-	void drawQuad(XY v0, XY v1, XY v2, XY v3, int z, uint32_t col);
-	void drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int z, uint32_t col);
-	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ);
+	void drawRect(RECT<int32_t> rect, int z, uint32_t col);
+	void drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, int col);
+	void drawTri(XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, int z, uint32_t col);
+	void drawTexTri(const TextureInfo &tex, XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, XY<int32_t> uv0, XY<int32_t> uv1, XY<int32_t> uv2, int z, uint32_t col);
+	void drawQuad(XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, XY<int32_t> v3, int z, uint32_t col);
+	void drawTexQuad(const TextureInfo &tex, XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, XY<int32_t> v3, XY<int32_t> uv0, XY<int32_t> uv1, XY<int32_t> uv2, XY<int32_t> uv3, int z, uint32_t col);
+	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ); //todo dont use random ints as args
+	void printString(XY<int32_t> pos, const char *str, int zIndex);
 
+	TextureInfo fontTex;
+	FontData *fontData;
 private:
 	bool usingSecondFrame;
 	int frameCounter;
@@ -117,7 +149,8 @@ private:
 	uint32_t *allocatePacket(int zIndex, int numCommands);
 };
 
-void uploadIndexedTexture(TextureInfo &info, const void *image);
+void uploadTexture(TextureInfo &info, const void *image);
 const ModelFile *loadModel(const uint8_t *data);
+FontData *loadFontMap(const uint8_t* data);
 
 }

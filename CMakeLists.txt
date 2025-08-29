@@ -50,58 +50,30 @@ file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS
 list(FILTER SRC_FILES EXCLUDE REGEX ".*/commonlib/.*")
 
 addPS1Executable(PSXRallyProject ${SRC_FILES})
-convertImage(
-    assets/cascube/cas1.png
-    assets/cascube/cas1.xtex
-    assets/cascube/cas1.vram
-)
-convertImage(
-    assets/cascube/cas2.png
-    assets/cascube/cas2.xtex
-    assets/cascube/cas2.vram
-)
-convertImage(
-    assets/cascube/cas3.png
-    assets/cascube/cas3.xtex
-    assets/cascube/cas3.vram
-)
-convertImage(
-    assets/cascube/cas4.png
-    assets/cascube/cas4.xtex
-    assets/cascube/cas4.vram
-)
-convertImage(
-    assets/cascube/cas5.png
-    assets/cascube/cas5.xtex
-    assets/cascube/cas5.vram
-)
-convertImage(
-    assets/cascube/cas6.png
-    assets/cascube/cas6.xtex
-    assets/cascube/cas6.vram
-)
 
+convertImage(
+    assets/font.png
+    assets/font.xtex
+    assets/font.vram
+)
+addBinaryFile(PSXRallyProject myfonttex "${PROJECT_BINARY_DIR}/assets/font.xtex")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
 
-add_custom_target(converted_images ALL DEPENDS 
-    assets/cascube/cas1.xtex
-    assets/cascube/cas2.xtex
-    assets/cascube/cas3.xtex
-    assets/cascube/cas4.xtex
-    assets/cascube/cas5.xtex
-    assets/cascube/cas6.xtex)
-
-add_dependencies(PSXRallyProject converted_images)
+convertImage(
+    assets/texture.png
+    assets/texture.xtex
+    assets/texture.vram
+)
+addBinaryFile(PSXRallyProject mytex "${PROJECT_BINARY_DIR}/assets/texture.xtex")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
 
 convertModel(
-	assets/cascube/cascube.obj #in 
-	assets/cascube/cascube.xmdl #out 
-	assets/cascube #texture directory
+	assets/cube.obj #in 
+	assets/cube.xmdl #out 
+	assets/ #texture directory
 )
-addBinaryFile(PSXRallyProject mymodel "${PROJECT_BINARY_DIR}/assets/cascube/cascube.xmdl")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
+addBinaryFile(PSXRallyProject mymodel "${PROJECT_BINARY_DIR}/assets/cube.xmdl")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
 
-convertImage(
-	assets/spicycube/texture.png
- 	assets/spicycube/texture.xtex
- 	assets/spicycube/texture.vram
+convertFont(
+	assets/font.json #in 
+	assets/font.xfnt #out 
 )
-addBinaryFile(PSXRallyProject mytex "${PROJECT_BINARY_DIR}/assets/spicycube/texture.xtex")
+addBinaryFile(PSXRallyProject myfont "${PROJECT_BINARY_DIR}/assets/font.xfnt")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")

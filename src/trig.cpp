@@ -6,6 +6,7 @@
 
 #include "trig.h"
 
+namespace TRIG {
 #define A (1 << 12)
 #define B 19900
 #define	C  3516
@@ -38,4 +39,5 @@ int isin2(int x) {
 	y     = A - (x * y >> 16);
 
 	return (c >= 0) ? y : (-y);
+}
 }

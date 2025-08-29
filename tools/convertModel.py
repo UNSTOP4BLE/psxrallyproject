@@ -11,7 +11,7 @@ class GTEVector16(ctypes.LittleEndianStructure):
         ("x", ctypes.c_int16),     
         ("y", ctypes.c_int16),     
         ("z", ctypes.c_int16),     
-        ("padding", ctypes.c_int16)   
+        ("_padding", ctypes.c_int16)   
     ]
 
 class Face(ctypes.LittleEndianStructure):
@@ -40,7 +40,31 @@ class ModelFileHeader(ctypes.LittleEndianStructure):
         ("numtex", ctypes.c_uint32)
     ]
 
+class TextureInfo(ctypes.LittleEndianStructure):
+    _pack_ = 1 
+    _fields_ = [
+        ("u", ctypes.c_uint8),
+        ("v", ctypes.c_uint8),
+        ("width", ctypes.c_uint16),
+        ("height", ctypes.c_uint16),
+        ("page", ctypes.c_uint16),
+        ("clut", ctypes.c_uint16),
+        ("bpp", ctypes.c_uint16)
+    ]
+
+class TexHeader(ctypes.LittleEndianStructure):
+    _pack_ = 1 
+    _fields_ = [
+        ("magic", ctypes.c_uint32),
+        ("texinfo", TextureInfo),
+        ("vrampos", ctypes.c_uint16*2), 
+        ("clutpos", ctypes.c_uint16*2), 
+        ("clutsize", ctypes.c_uint16), 
+        ("texsize", ctypes.c_uint16) 
+    ]
+
 def reorder_z_shape(indices):
+    print(indices)
     if len(indices) == 4:
         return [indices[0], indices[1], indices[3], indices[2]]
     elif len(indices) == 3:
@@ -72,8 +96,8 @@ if __name__ == '__main__':
     faces = []
     textures = []
 
-    if len(sys.argv) < 5:
-        error("wrong args, usage: convertModel [in] [out] [src texture dir] [out texture dir]")
+    if len(sys.argv) < 4:
+        error("wrong args, usage: convertModel [in] [out] [out texture dir]")
     #open the obj file
     fin = open(sys.argv[1], 'r')
 
@@ -145,22 +169,26 @@ if __name__ == '__main__':
         #faces 
         if (re.search("^f ", line)):
             f = Face()
-            matches = re.findall(r'(\d+)/(\d+)/(\d+)', line)
+            matches = re.findall(r'(\d+)(?:/(\d*)/?(\d*))?\s*', line)
             #indices
-            vert_indices = [int(v)-1 for v, vt, vn in matches]
+            vert_indices = [int(v) - 1 for v, vt, vn in matches if v != '']
             f.indices[:] = reorder_z_shape(vert_indices)
-            #uv indices
-            uv_indices = [int(vt)-1 for v, vt, vn in matches]  
-            uv_indices = reorder_z_shape(uv_indices)
 
-            if curmat is not None:
+            if curmat is not None: 
                 f.color = curmat.color
                 if not curmat.texid < 0: #face is textured
-                    tex = Image.open(os.path.join(sys.argv[3], curmat.texture))
-                    width, height = tex.size
+                    tex = open(os.path.join(sys.argv[3], os.path.splitext(curmat.texture)[0] + ".xtex"), 'rb')
+                    data = tex.read(ctypes.sizeof(TexHeader))
+                    texheader = TexHeader.from_buffer_copy(data)
+                    width, height = texheader.texinfo.width, texheader.texinfo.height
                     width -= 1
                     height -= 1
                     tex.close()
+                    
+                    #uv indices
+                    uv_indices = [int(vt) - 1 for v, vt, vn in matches if vt != '']
+                    uv_indices = reorder_z_shape(uv_indices)
+
                     f.u[:] = [int(uvs[i][0]*width) for i in uv_indices]
                     f.v[:] = [int(uvs[i][1]*height) for i in uv_indices]
                     f.texid = curmat.texid
@@ -196,7 +224,7 @@ if __name__ == '__main__':
             #read converted texture
             texpath = mat.texture
             texname = os.path.splitext(os.path.basename(texpath))[0] + ".xtex"  #just the file name with .xtex
-            texpath = os.path.join(sys.argv[4], texname)
+            texpath = os.path.join(sys.argv[3], texname)
         
             print("writing texture", texpath)
             ftex = open(texpath, 'rb')

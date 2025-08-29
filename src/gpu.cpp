@@ -10,7 +10,7 @@ static void waitForGP0Ready(void);
 static void waitForDMADone(void);
 static void waitForVSync(void);
 static void sendLinkedList(const void *data);
-static void sendVRAMData(const void *data, Rect rect);
+static void sendVRAMData(const void *data, RECT<int32_t> rect);
 static void clearOrderingTable(uint32_t *table, int numEntries);
 
 void Renderer::init(GP1VideoMode mode, int width, int height) {
@@ -106,14 +106,14 @@ static inline void addPacketData(uint32_t *ptr, int i, uint32_t p) {
 	ptr[i] = p;       
 }
 
-void Renderer::drawRect(Rect rect, int z, uint32_t col) {
+void Renderer::drawRect(RECT<int32_t> rect, int z, uint32_t col) {
 	auto ptr      = allocatePacket(z, 3);
 	ptr[0]        = col | gp0_rectangle(false, false, false); 
 	ptr[1]        = gp0_xy(rect.x, rect.y);       
 	ptr[2]        = gp0_xy(rect.w, rect.h);  
 }
 
-void Renderer::drawTexRect(const TextureInfo &tex, XY pos, int z, int col) {
+void Renderer::drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, int col) {
 	auto ptr = allocatePacket(z, 5);
 	ptr[0]        = gp0_texpage(tex.page, false, false);
 	ptr[1]        = col | gp0_rectangle(true, true, false);
@@ -122,7 +122,7 @@ void Renderer::drawTexRect(const TextureInfo &tex, XY pos, int z, int col) {
 	ptr[4]        = gp0_xy(tex.width, tex.height);
 }
 
-void Renderer::drawTri(XY v0, XY v1, XY v2, int z, uint32_t col) {
+void Renderer::drawTri(XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, int z, uint32_t col) {
     auto ptr = allocatePacket(z, 4);
     ptr[0]        = col | gp0_shadedTriangle(false, false, false);
     ptr[1]        = gp0_xy(v0.x, v0.y);
@@ -130,7 +130,7 @@ void Renderer::drawTri(XY v0, XY v1, XY v2, int z, uint32_t col) {
     ptr[3]        = gp0_xy(v2.x, v2.y);
 }
 
-void Renderer::drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, XY uv1, XY uv2, int z, uint32_t col) {
+void Renderer::drawTexTri(const TextureInfo &tex, XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, XY<int32_t> uv0, XY<int32_t> uv1, XY<int32_t> uv2, int z, uint32_t col) {
     auto *ptr = allocatePacket(z, 8);
 	ptr[0]        = gp0_texpage(tex.page, false, false); // set texture page and CLUT
     ptr[1]        = col | gp0_shadedTriangle(false, true, false);
@@ -142,7 +142,7 @@ void Renderer::drawTexTri(const TextureInfo &tex, XY v0, XY v1, XY v2, XY uv0, X
     ptr[7]        = gp0_uv(uv2.x, uv2.y, 0);
 }
 
-void Renderer::drawQuad(XY v0, XY v1, XY v2, XY v3, int z, uint32_t col) {
+void Renderer::drawQuad(XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, XY<int32_t> v3, int z, uint32_t col) {
 	auto ptr    = allocatePacket(z, 5);
 	ptr[0] = col | gp0_shadedQuad(false, false, false);
 	ptr[1] = gp0_xy(v0.x, v0.y);
@@ -151,7 +151,7 @@ void Renderer::drawQuad(XY v0, XY v1, XY v2, XY v3, int z, uint32_t col) {
 	ptr[4] = gp0_xy(v3.x, v3.y);
 }
 
-void Renderer::drawTexQuad(const TextureInfo &tex, XY v0, XY v1, XY v2, XY v3, XY uv0, XY uv1, XY uv2, XY uv3, int z, uint32_t col) {
+void Renderer::drawTexQuad(const TextureInfo &tex, XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, XY<int32_t> v3, XY<int32_t> uv0, XY<int32_t> uv1, XY<int32_t> uv2, XY<int32_t> uv3, int z, uint32_t col) {
     auto *ptr = allocatePacket(z, 10);
 	ptr[0]    = gp0_texpage(tex.page, false, false); // set texture page and CLUT
     ptr[1]    = col | gp0_shadedQuad(false, true, false);
@@ -177,7 +177,7 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 
 	GTE::rotateCurrentMatrix(rotX, rotY, rotZ);
 
-	for (int i = 0; i < static_cast<int>(model->header.numfaces); i++) {
+	for (int i = 0; i < static_cast<int>(model->header->numfaces); i++) {
 		const Face *face = &model->faces[i];
 
 		bool istriangle = false;
@@ -310,6 +310,57 @@ uint32_t *Renderer::allocatePacket(int zIndex, int numCommands) {
     return &ptr[1];
 }
 
+void Renderer::printString(XY<int32_t> pos, const char *str, int zIndex) {
+	assert(fontData);
+	int currentX = pos.x, currentY = pos.y;
+
+	uint32_t *ptr;
+
+	// Start by sending a texpage command to tell the GPU to use the font's
+	// spritesheet. Note that the texpage command before a drawing command can
+	// be omitted when reusing the same texture, so sending it here just once is
+	// enough.
+	ptr    = allocatePacket(zIndex, 1);
+	ptr[0] = gp0_texpage(fontTex.page, false, false);
+
+	for (; *str; str++) {
+		char ch = *str;
+
+		const RECT<uint8_t> rect = fontData->rects[ch - fontData->header->firstchar];
+		// Check if the character is "special"
+		int tabwidth = fontData->header->tabwidth;
+		switch (ch) {
+			case '\t':
+				currentX += tabwidth - 1;
+				currentX -= currentX % tabwidth;
+				continue;
+
+			case '\n':
+				currentX  = pos.x;
+				currentY += fontData->header->lineheight;
+				continue;
+
+			case ' ':
+				currentX += fontData->header->spacewidth;
+				continue;
+
+			case '\x80' ... '\xff':
+				ch = '\x7f';
+				break;
+		}
+
+		// Enable blending to make sure any semitransparent pixels in the font get rendered correctly.
+		ptr    = allocatePacket(zIndex, 4);
+		ptr[0] = gp0_rectangle(true, true, true);
+		ptr[1] = gp0_xy(currentX, currentY);
+		ptr[2] = gp0_uv(fontTex.u + rect.x, fontTex.v + rect.y, fontTex.clut);
+		ptr[3] = gp0_xy(rect.w, rect.h);
+
+		currentX += rect.w;
+	}
+}
+
+
 //indexed
 void uploadTexture(TextureInfo &info, const void *image) {
     const TexHeader* header = reinterpret_cast<const TexHeader*>(image);
@@ -328,40 +379,36 @@ void uploadTexture(TextureInfo &info, const void *image) {
 }
 
 const ModelFile* loadModel(const uint8_t* data) {
-    // reinterpret header
-    const ModelFileHeader* header = reinterpret_cast<const ModelFileHeader*>(data);
-	assert(header->isValid());
-
-    // set up ModelFile
     static ModelFile model; 
-    model.header = *header; 
+    model.header = reinterpret_cast<const ModelFileHeader*>(data);
+	assert(model.header->isValid());
 
-    // vertices are right after the header
-    model.vertices = header->vertices();
+    model.vertices = model.header->vertices();
+    model.faces = model.header->faces();
 
-    // faces are right after the vertices
-    model.faces = header->faces();
+	//textures
+	auto texptr = model.header->textures();
 
-	// textures are right after faces
-	auto texptr = header->textures();
-    const uint8_t* base = texptr; // start of texture section
-
-
-	for (int i = 0; i < static_cast<int>(header->numtex); i++) {
+	for (int i = 0; i < static_cast<int>(model.header->numtex); i++) {
 		const TexHeader* texheader = reinterpret_cast<const TexHeader*>(texptr);
-		printf("%d", texptr - base);
-		assert(texheader->isValid());
-		// read header and upload texture
 		uploadTexture(model.textures[i], texptr);
 		
-		// advance pointer: sizeof(TexHeader) + clutsize*2 bytes + texture data
-		size_t clut_bytes = texheader->clutsize * sizeof(uint16_t);
+		size_t clut_bytes = texheader->clutsize;
 		size_t tex_bytes = texheader->texsize;
 
 		texptr += sizeof(TexHeader) + clut_bytes + tex_bytes;
 	}
 
     return &model;
+}
+
+FontData *loadFontMap(const uint8_t* data) {
+    static FontData fntdata;
+    fntdata.header = reinterpret_cast<const FontHeader*>(data);
+	assert(fntdata.header->isValid());
+    fntdata.rects = fntdata.header->rects();
+
+    return &fntdata;
 }
 
 static void waitForGP0Ready(void) {
@@ -392,7 +439,7 @@ static void sendLinkedList(const void *data) {
 		| DMA_CHCR_ENABLE;
 }
 
-static void sendVRAMData(const void *data, Rect rect) {
+static void sendVRAMData(const void *data, RECT<int32_t> rect) {
 	waitForDMADone();
 	assert(!((uint32_t) data % 4));
 
