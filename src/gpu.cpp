@@ -285,13 +285,6 @@ void Renderer::printString(XY<int32_t> pos, int zIndex, const char *str) {
 
 	uint32_t *ptr;
 
-	// Start by sending a texpage command to tell the GPU to use the font's
-	// spritesheet. Note that the texpage command before a drawing command can
-	// be omitted when reusing the same texture, so sending it here just once is
-	// enough.
-	ptr    = allocatePacket(zIndex, 1);
-	ptr[0] = gp0_texpage(fontTex.page, false, false);
-
 	for (; *str; str++) {
 		char ch = *str;
 
@@ -328,6 +321,9 @@ void Renderer::printString(XY<int32_t> pos, int zIndex, const char *str) {
 
 		currentX += rect.w;
 	}
+	
+	ptr    = allocatePacket(zIndex, 1);
+	ptr[0] = gp0_texpage(fontTex.page, false, false);
 }
 
 
