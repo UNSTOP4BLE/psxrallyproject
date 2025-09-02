@@ -17,8 +17,8 @@ class TextureInfo(ctypes.LittleEndianStructure):
     _fields_ = [
         ("u", ctypes.c_uint8),
         ("v", ctypes.c_uint8),
-        ("width", ctypes.c_uint16),
-        ("height", ctypes.c_uint16),
+        ("w", ctypes.c_uint16),
+        ("h", ctypes.c_uint16),
         ("page", ctypes.c_uint16),
         ("clut", ctypes.c_uint16),
         ("bpp", ctypes.c_uint16)
@@ -227,7 +227,7 @@ def main():
 	args:   Namespace      = parser.parse_args()
 
 	vram = args.vram.read().split()
-	vram = vram = [eval(value) for value in vram]
+	vram = [eval(value) for value in vram]
 	bpp = vram[4]
 
 	try:

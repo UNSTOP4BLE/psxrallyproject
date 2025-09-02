@@ -42,8 +42,8 @@ def main():
     header.firstchar = ord(sprites[0]["char"])
     header.spacewidth = settings["SPACE_WIDTH"]
     header.tabwidth = settings["TAB_WIDTH"]
-    header.firstchar = settings["LINE_HEIGHT"]
-    header.numchars = len(sprites)
+    header.lineheight = settings["LINE_HEIGHT"]
+    header.numchars = len(sprites) 
 
     with open(sys.argv[2], "wb") as f:
         f.write(header)

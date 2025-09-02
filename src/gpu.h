@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdint.h>
 #include "ps1/gpucmd.h"
 #include "gte.h"
 
@@ -46,9 +45,10 @@ struct [[gnu::packed]] XY {
     XY() = default;
     XY(T _x, T _y) : x(_x), y(_y) {}
 };
+
 struct [[gnu::packed]] TextureInfo {
 	uint8_t  u, v;
-	uint16_t width, height;
+	uint16_t w, h;
 	uint16_t page, clut;
 	uint16_t bpp;
 };
@@ -128,12 +128,9 @@ public:
 
 	void drawRect(RECT<int32_t> rect, int z, uint32_t col);
 	void drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, int col);
-	void drawTri(XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, int z, uint32_t col);
-	void drawTexTri(const TextureInfo &tex, XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, XY<int32_t> uv0, XY<int32_t> uv1, XY<int32_t> uv2, int z, uint32_t col);
-	void drawQuad(XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, XY<int32_t> v3, int z, uint32_t col);
-	void drawTexQuad(const TextureInfo &tex, XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, XY<int32_t> v3, XY<int32_t> uv0, XY<int32_t> uv1, XY<int32_t> uv2, XY<int32_t> uv3, int z, uint32_t col);
+    void drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uint32_t col);
 	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ); //todo dont use random ints as args
-	void printString(XY<int32_t> pos, const char *str, int zIndex);
+	void printString(XY<int32_t> pos, int zIndex, const char *str);
 
 	TextureInfo fontTex;
 	FontData *fontData;
@@ -151,6 +148,6 @@ private:
 
 void uploadTexture(TextureInfo &info, const void *image);
 const ModelFile *loadModel(const uint8_t *data);
-FontData *loadFontMap(const uint8_t* data);
+FontData *loadFontMap(const uint8_t *data);
 
 }

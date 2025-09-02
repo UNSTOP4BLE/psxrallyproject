@@ -1,9 +1,7 @@
 #include "gpu.h"
 #include <assert.h>
-#include <stdbool.h>
+#include <stdint.h>
 #include "ps1/registers.h"
-#include <stdlib.h>
-#include <stdio.h>
 
 namespace GFX {
 static void waitForGP0Ready(void);
@@ -119,50 +117,21 @@ void Renderer::drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, int c
 	ptr[1]        = col | gp0_rectangle(true, true, false);
 	ptr[2]        = gp0_xy(pos.x, pos.y);
 	ptr[3]        = gp0_uv(tex.u, tex.v, tex.clut);
-	ptr[4]        = gp0_xy(tex.width, tex.height);
+	ptr[4]        = gp0_xy(tex.w, tex.h);
 }
 
-void Renderer::drawTri(XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, int z, uint32_t col) {
-    auto ptr = allocatePacket(z, 4);
-    ptr[0]        = col | gp0_shadedTriangle(false, false, false);
-    ptr[1]        = gp0_xy(v0.x, v0.y);
-    ptr[2]        = gp0_xy(v1.x, v1.y);
-    ptr[3]        = gp0_xy(v2.x, v2.y);
-}
-
-void Renderer::drawTexTri(const TextureInfo &tex, XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, XY<int32_t> uv0, XY<int32_t> uv1, XY<int32_t> uv2, int z, uint32_t col) {
-    auto *ptr = allocatePacket(z, 8);
-	ptr[0]        = gp0_texpage(tex.page, false, false); // set texture page and CLUT
-    ptr[1]        = col | gp0_shadedTriangle(false, true, false);
-    ptr[2]        = gp0_xy(v0.x, v0.y);
-    ptr[3]        = gp0_uv(uv0.x, uv0.y, tex.clut);
-    ptr[4]        = gp0_xy(v1.x, v1.y);
-    ptr[5]        = gp0_uv(uv1.x, uv1.y, tex.page);
-    ptr[6]        = gp0_xy(v2.x, v2.y);
-    ptr[7]        = gp0_uv(uv2.x, uv2.y, 0);
-}
-
-void Renderer::drawQuad(XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, XY<int32_t> v3, int z, uint32_t col) {
-	auto ptr    = allocatePacket(z, 5);
-	ptr[0] = col | gp0_shadedQuad(false, false, false);
-	ptr[1] = gp0_xy(v0.x, v0.y);
-	ptr[2] = gp0_xy(v1.x, v1.y);	
-	ptr[3] = gp0_xy(v2.x, v2.y);
-	ptr[4] = gp0_xy(v3.x, v3.y);
-}
-
-void Renderer::drawTexQuad(const TextureInfo &tex, XY<int32_t> v0, XY<int32_t> v1, XY<int32_t> v2, XY<int32_t> v3, XY<int32_t> uv0, XY<int32_t> uv1, XY<int32_t> uv2, XY<int32_t> uv3, int z, uint32_t col) {
+void Renderer::drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uint32_t col) {
     auto *ptr = allocatePacket(z, 10);
 	ptr[0]    = gp0_texpage(tex.page, false, false); // set texture page and CLUT
     ptr[1]    = col | gp0_shadedQuad(false, true, false);
-    ptr[2]    = gp0_xy(v0.x, v0.y);
-    ptr[3]    = gp0_uv(uv0.x, uv0.y, tex.clut);
-    ptr[4]    = gp0_xy(v1.x, v1.y);
-    ptr[5]    = gp0_uv(uv1.x, uv1.y, tex.page);
-    ptr[6]    = gp0_xy(v2.x, v2.y);
-    ptr[7]    = gp0_uv(uv2.x, uv2.y, 0);
-    ptr[8]    = gp0_xy(v3.x, v3.y);
-    ptr[9]    = gp0_uv(uv3.x, uv3.y, 0);
+    ptr[2]    = gp0_xy(pos.x, pos.y);
+    ptr[3]    = gp0_uv(tex.u, tex.v, tex.clut);
+    ptr[4]    = gp0_xy(pos.x+pos.w, pos.y);
+    ptr[5]    = gp0_uv(tex.u+tex.w, tex.v, tex.page);
+    ptr[6]    = gp0_xy(pos.x, pos.y+pos.h);
+    ptr[7]    = gp0_uv(tex.u, tex.v+tex.h, 0);
+    ptr[8]    = gp0_xy(pos.x+pos.w, pos.y+pos.h);
+    ptr[9]    = gp0_uv(tex.u+tex.w, tex.v+tex.h, 0);
 }
 
 void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ) {
@@ -310,7 +279,7 @@ uint32_t *Renderer::allocatePacket(int zIndex, int numCommands) {
     return &ptr[1];
 }
 
-void Renderer::printString(XY<int32_t> pos, const char *str, int zIndex) {
+void Renderer::printString(XY<int32_t> pos, int zIndex, const char *str) {
 	assert(fontData);
 	int currentX = pos.x, currentY = pos.y;
 
@@ -326,7 +295,6 @@ void Renderer::printString(XY<int32_t> pos, const char *str, int zIndex) {
 	for (; *str; str++) {
 		char ch = *str;
 
-		const RECT<uint8_t> rect = fontData->rects[ch - fontData->header->firstchar];
 		// Check if the character is "special"
 		int tabwidth = fontData->header->tabwidth;
 		switch (ch) {
@@ -349,6 +317,8 @@ void Renderer::printString(XY<int32_t> pos, const char *str, int zIndex) {
 				break;
 		}
 
+		const RECT<uint8_t> &rect = fontData->rects[ch - fontData->header->firstchar];
+		
 		// Enable blending to make sure any semitransparent pixels in the font get rendered correctly.
 		ptr    = allocatePacket(zIndex, 4);
 		ptr[0] = gp0_rectangle(true, true, true);
@@ -367,31 +337,31 @@ void uploadTexture(TextureInfo &info, const void *image) {
 	assert(header->isValid());
 	info = header->texinfo;
 
-	assert((info.width <= 256) && (info.height <= 256));
+	assert((info.w <= 256) && (info.h <= 256));
 
 	int numColors = (info.bpp == 8) ? 256 : 16;
 	int widthDivider = (info.bpp == 8) ? 2 : 4;
 
-	sendVRAMData(header->texdata(), {header->vrampos[0], header->vrampos[1], info.width / widthDivider, info.height});
+	sendVRAMData(header->texdata(), {header->vrampos[0], header->vrampos[1], info.w / widthDivider, info.h});
 	waitForDMADone();
 	sendVRAMData(header->clut(), {header->clutpos[0], header->clutpos[1], numColors, 1});
 	waitForDMADone();
 }
 
 const ModelFile* loadModel(const uint8_t* data) {
-    static ModelFile model; 
-    model.header = reinterpret_cast<const ModelFileHeader*>(data);
-	assert(model.header->isValid());
+    auto model = new ModelFile(); 
+    model->header = reinterpret_cast<const ModelFileHeader*>(data);
+	assert(model->header->isValid());
 
-    model.vertices = model.header->vertices();
-    model.faces = model.header->faces();
+    model->vertices = model->header->vertices();
+    model->faces = model->header->faces();
 
 	//textures
-	auto texptr = model.header->textures();
+	auto texptr = model->header->textures();
 
-	for (int i = 0; i < static_cast<int>(model.header->numtex); i++) {
+	for (int i = 0; i < static_cast<int>(model->header->numtex); i++) {
 		const TexHeader* texheader = reinterpret_cast<const TexHeader*>(texptr);
-		uploadTexture(model.textures[i], texptr);
+		uploadTexture(model->textures[i], texptr);
 		
 		size_t clut_bytes = texheader->clutsize;
 		size_t tex_bytes = texheader->texsize;
@@ -399,16 +369,16 @@ const ModelFile* loadModel(const uint8_t* data) {
 		texptr += sizeof(TexHeader) + clut_bytes + tex_bytes;
 	}
 
-    return &model;
+    return model;
 }
 
-FontData *loadFontMap(const uint8_t* data) {
-    static FontData fntdata;
-    fntdata.header = reinterpret_cast<const FontHeader*>(data);
-	assert(fntdata.header->isValid());
-    fntdata.rects = fntdata.header->rects();
+FontData *loadFontMap(const uint8_t *data) {
+    auto fntdata = new FontData();
+    fntdata->header = reinterpret_cast<const FontHeader*>(data);
+	assert(fntdata->header->isValid());
+    fntdata->rects = fntdata->header->rects();
 
-    return &fntdata;
+	return fntdata;
 }
 
 static void waitForGP0Ready(void) {
