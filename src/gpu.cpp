@@ -62,7 +62,6 @@ void Renderer::beginFrame(void) {
 
     // add gpu commands to clear buffer and set drawing origin to new chain
     // z is set to (ORDERING_TABLE_SIZE - 1) so they're executed before anything else
-	setClearCol(64,64,64);
     auto _ptr = allocatePacket(ORDERING_TABLE_SIZE - 1, 7);
     _ptr[0]   = gp0_texpage(0, true, false);
     _ptr[1]   = gp0_xy(_bufx, _bufy);
@@ -184,19 +183,11 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 		// calculated by the GTE.
 
 		//todo set texture only once
-		if (_istriangle) {//face is a triangle
-			if (_face->texid < 0) {// not textured
-				auto ptr = allocatePacket(_z,6);
-				ptr[0] = _face->color | gp0_shadedTriangle(true, false, false);
-				ptr[1] = _xy0;
-				ptr[2] = _face->color;
-				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
-				ptr[4] = _face->color;
-				gte_storeDataReg(GTE_SXY2, 5 * 4, ptr);
-			}
-			else { //textured
-				auto clut = model->textures[_face->texid].clut;
-				auto page = model->textures[_face->texid].page;
+		if (_face->texid >= 0) { //textured
+			auto clut = model->textures[_face->texid].clut;
+			auto page = model->textures[_face->texid].page;
+
+			if (_istriangle) {
 				auto *ptr = allocatePacket(_z, 8);
 				ptr[0]        = gp0_texpage(page, false, false); // set texture page and CLUT
 				ptr[1]        = _face->color | gp0_shadedTriangle(false, true, false);
@@ -207,20 +198,8 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 				gte_storeDataReg(GTE_SXY2, 6 * 4, ptr);
 				ptr[7]        = gp0_uv(_face->u[2], _face->v[2], 0);
 			}
-		}
-		else { //face is a quad
-			if (_face->texid < 0) { //not textured 
-				auto ptr    = allocatePacket(_z, 5);
-				ptr[0] = _face->color | gp0_shadedQuad(false, false, false);
-				ptr[1] = _xy0;
-				gte_storeDataReg(GTE_SXY0, 2 * 4, ptr);
-				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
-				gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
-			}
-			else { //textured 
-				auto clut = model->textures[_face->texid].clut;
-				auto page = model->textures[_face->texid].page;
-			    auto *ptr = allocatePacket(_z, 10);
+			else { //quad
+	    		auto *ptr = allocatePacket(_z, 10);
 				ptr[0]    = gp0_texpage(page, false, false); // set texture page and CLUT
 				ptr[1]    = _face->color | gp0_shadedQuad(false, true, false);
 				ptr[2]    = _xy0;
@@ -231,6 +210,25 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 				ptr[7]    = gp0_uv(_face->u[2], _face->v[2], 0);
 				gte_storeDataReg(GTE_SXY2, 8 * 4, ptr);
 				ptr[9]    = gp0_uv(_face->u[3], _face->v[3], 0);
+			}			
+		}
+		else  { //untextured
+			if (_istriangle) {
+				auto ptr = allocatePacket(_z,6);
+				ptr[0] = _face->color | gp0_shadedTriangle(true, false, false);
+				ptr[1] = _xy0;
+				ptr[2] = _face->color;
+				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
+				ptr[4] = _face->color;
+				gte_storeDataReg(GTE_SXY2, 5 * 4, ptr);
+			}
+			else { //quad
+	    		auto ptr    = allocatePacket(_z, 5);
+				ptr[0] = _face->color | gp0_shadedQuad(false, false, false);
+				ptr[1] = _xy0;
+				gte_storeDataReg(GTE_SXY0, 2 * 4, ptr);
+				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
+				gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
 			}
 		}
 	}
@@ -254,7 +252,7 @@ uint32_t *Renderer::allocatePacket(int z, int numcommands) {
     return &_ptr[1];
 }
 
-void Renderer::printString(XY<int32_t> pos, int z, const char *str) {
+void Renderer::printString(XY<int32_t> pos, const char *str, int z) {
 	assert(fontmap);
 	int _curx = pos.x, _cury = pos.y;
 
@@ -301,12 +299,32 @@ void Renderer::printString(XY<int32_t> pos, int z, const char *str) {
 	_ptr[0] = gp0_texpage(fonttex.page, false, false);
 }
 
-
+#include <stdio.h>
 //indexed
 void uploadTexture(TextureInfo &info, const void *image) {
     const TexHeader* _header = reinterpret_cast<const TexHeader*>(image);
 	assert(_header->isValid());
 	info = _header->texinfo;
+
+    printf("=== TexHeader ===\n");
+    printf("Magic: 0x%08X (%s)\n",
+           _header->magic,
+           _header->isValid() ? "valid" : "invalid");
+
+    printf("TextureInfo:\n");
+    printf("  u: %u\n", info.u);
+    printf("  v: %u\n", info.v);
+    printf("  w: %u\n", info.w);
+    printf("  h: %u\n", info.h);
+    printf("  page: %u\n", info.page);
+    printf("  clut: %u\n", info.clut);
+    printf("  bpp: %u\n", info.bpp);
+
+    printf("VRAM position:  (%u, %u)\n", _header->vrampos[0], _header->vrampos[1]);
+    printf("CLUT position:  (%u, %u)\n", _header->clutpos[0], _header->clutpos[1]);
+    printf("CLUT size:      %u bytes (%u entries)\n",
+           _header->clutsize, _header->clutsize / sizeof(uint16_t));
+    printf("Texture size:   %u bytes\n", _header->texsize);
 
 	assert((info.w <= 256) && (info.h <= 256));
 

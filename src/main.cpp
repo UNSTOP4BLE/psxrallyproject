@@ -23,7 +23,7 @@ int main(int argc, const char **argv) {
 
 	GTE::setupGTE();
 	GFX::uploadTexture(g_app.renderer.fonttex, g_myfonttex);
-//	g_app.renderer.fontmap = GFX::loadFontMap(g_myfontmap);
+	g_app.renderer.fontmap = GFX::loadFontMap(g_myfontmap);
     //auto model = GFX::loadModel(mymodel);
 	int _x = 0;
 	while(1) {
@@ -34,7 +34,7 @@ int main(int argc, const char **argv) {
     	//app.renderer.drawModel(model,
         //	  0, 0, 0,                  // translation
           //    0, x, 90);
-	//	g_app.renderer.printString({50, 50},0, "hello world!");
+		g_app.renderer.printString({50, 50}, "hello world!", 0);
 		g_app.renderer.endFrame();
 	}
 	return 0;

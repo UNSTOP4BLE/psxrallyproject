@@ -130,7 +130,7 @@ public:
 	void drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, int col);
     void drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uint32_t col);
 	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ); //todo dont use random ints as args
-	void printString(XY<int32_t> pos, int zIndex, const char *str);
+	void printString(XY<int32_t> pos, const char *str, int z);
 
     void setClearCol(uint8_t r, uint8_t g, uint8_t b) {
         clearcol = gp0_rgb(r, g, b);

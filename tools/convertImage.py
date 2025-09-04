@@ -256,8 +256,8 @@ def main():
 	info.clut   = gp0_clut(vram[2] // 16, vram[3])
 	info.u      = (vram[0] %  64) * width_divider
 	info.v      = (vram[1] % 256)
-	info.width  = image.size[0]
-	info.height = image.size[1] 
+	info.w  = image.size[0]
+	info.h = image.size[1] 
 	info.bpp    = bpp
 
 	header.texinfo = info 
