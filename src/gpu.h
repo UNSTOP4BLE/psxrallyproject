@@ -18,12 +18,12 @@ namespace GFX {
 
 struct DMAChain {
 	uint32_t data[CHAIN_BUFFER_SIZE];
-	uint32_t orderingTable[ORDERING_TABLE_SIZE];
-	uint32_t *nextPacket;
+	uint32_t orderingtable[ORDERING_TABLE_SIZE];
+	uint32_t *nextpacket;
 };
 
 struct Face {
-    int16_t indices[4]; // indices into model->vertices[], last one is negative if its a triangle
+    int16_t indices[4];  // indices into model->vertices[], last one is negative if its a triangle
     uint32_t color;      // base color (for modulation or flat shading)
     uint8_t u[4];        // per-vertex U texture coords
     uint8_t v[4];        // per-vertex V texture coords
@@ -121,7 +121,7 @@ struct [[gnu::packed]] FontData {
 
 class Renderer {
 public:
-	void init(GP1VideoMode mode, int width, int height);
+	void init(GP1VideoMode mode);
 	
 	void beginFrame(void);
 	void endFrame(void);
@@ -132,18 +132,18 @@ public:
 	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ); //todo dont use random ints as args
 	void printString(XY<int32_t> pos, int zIndex, const char *str);
 
-	TextureInfo fontTex;
-	FontData *fontData;
+	TextureInfo fonttex;
+	FontData *fontmap;
 private:
-	bool usingSecondFrame;
-	int frameCounter;
-	DMAChain dmaChains[2];
-	DMAChain *chain;
+	bool usingsecondframe;
+	int framecounter;
+	DMAChain dmachains[2];
 
 	DMAChain *getCurrentChain(void) {
-		return &dmaChains[usingSecondFrame];
+		return &dmachains[usingsecondframe];
 	}
-	uint32_t *allocatePacket(int zIndex, int numCommands);
+
+	uint32_t *allocatePacket(int z, int numcommands);
 };
 
 void uploadTexture(TextureInfo &info, const void *image);

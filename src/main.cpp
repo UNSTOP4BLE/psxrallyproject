@@ -2,39 +2,39 @@
 #include <stdio.h>
 #include "ps1/registers.h"
 
-extern const uint8_t mytex[];
-extern const uint8_t mymodel[];
-extern const uint8_t myfont[];
-extern const uint8_t myfonttex[];
+extern const uint8_t g_mytex[];
+extern const uint8_t g_mymodel[];
+extern const uint8_t g_myfontmap[];
+extern const uint8_t g_myfonttex[];
 
-App app;
+App g_app;
 int main(int argc, const char **argv) {
 	initSerialIO(115200);
 
 	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
 		puts("Using PAL mode");
-		app.renderer.init(GP1_MODE_PAL, SCREEN_WIDTH, SCREEN_HEIGHT);
+		g_app.renderer.init(GP1_MODE_PAL);
+
 	} else {
 		puts("Using NTSC mode");
-		app.renderer.init(GP1_MODE_NTSC, SCREEN_WIDTH, SCREEN_HEIGHT);
+		g_app.renderer.init(GP1_MODE_NTSC);
 	}
 
 	GTE::setupGTE(SCREEN_WIDTH, SCREEN_HEIGHT);
-	GFX::uploadTexture(app.renderer.fontTex, myfonttex);
-	app.renderer.fontData = GFX::loadFontMap(myfont);
+	GFX::uploadTexture(g_app.renderer.fonttex, g_myfonttex);
+//	g_app.renderer.fontmap = GFX::loadFontMap(g_myfontmap);
     //auto model = GFX::loadModel(mymodel);
-	int x = 0;
+	int _x = 0;
 	while(1) {
-		app.renderer.beginFrame();
+		g_app.renderer.beginFrame();
 		
-		x += 10;
-		//app.renderer.drawTexQuad(app.renderer.fontTex, {0, 0, 320, 240}, 0, 0x808080);
+//		_x += 10;
+//		g_app.renderer.drawTexQuad(g_app.renderer.fonttex, {0, 0, 320, 240}, 0, 0x808080);
     	//app.renderer.drawModel(model,
         //	  0, 0, 0,                  // translation
           //    0, x, 90);
-		app.renderer.printString({50, 50},0, "hello world!");
-		app.renderer.endFrame();
+	//	g_app.renderer.printString({50, 50},0, "hello world!");
+		g_app.renderer.endFrame();
 	}
-	delete app.renderer.fontData;
 	return 0;
 }

@@ -7,3 +7,5 @@ public:
 	GFX::Renderer renderer;
 
 };
+
+extern App g_app;
