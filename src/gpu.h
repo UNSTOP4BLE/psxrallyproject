@@ -13,8 +13,8 @@ namespace GFX {
 #define CHAIN_BUFFER_SIZE   4104
 #define ORDERING_TABLE_SIZE  3072
 
-#define SCREEN_WIDTH  320
-#define SCREEN_HEIGHT 240
+constexpr int SCREEN_WIDTH  = 320;
+constexpr int SCREEN_HEIGHT = 240;
 
 struct DMAChain {
 	uint32_t data[CHAIN_BUFFER_SIZE];
@@ -132,12 +132,16 @@ public:
 	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ); //todo dont use random ints as args
 	void printString(XY<int32_t> pos, int zIndex, const char *str);
 
+    void setClearCol(uint8_t r, uint8_t g, uint8_t b) {
+        clearcol = gp0_rgb(r, g, b);
+    }
 	TextureInfo fonttex;
 	FontData *fontmap;
 private:
 	bool usingsecondframe;
 	int framecounter;
 	DMAChain dmachains[2];
+    uint32_t clearcol;
 
 	DMAChain *getCurrentChain(void) {
 		return &dmachains[usingsecondframe];

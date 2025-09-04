@@ -4,7 +4,7 @@
 #include "gpu.h"
 
 namespace GTE {
-void setupGTE(int width, int height) {
+void setupGTE(void) {
 	// Ensure the GTE, which is coprocessor 2, is enabled. MIPS coprocessors are
 	// enabled through the status register in coprocessor 0, which is always
 	// accessible.
@@ -13,14 +13,14 @@ void setupGTE(int width, int height) {
 	// Set the offset to be added to all calculated screen space coordinates (we
 	// want our cube to appear at the center of the screen) Note that OFX and
 	// OFY are 16.16 fixed-point rather than 20.12.
-	gte_setControlReg(GTE_OFX, (width  << 16) / 2);
-	gte_setControlReg(GTE_OFY, (height << 16) / 2);
+	gte_setControlReg(GTE_OFX, (GFX::SCREEN_WIDTH  << 16) / 2);
+	gte_setControlReg(GTE_OFY, (GFX::SCREEN_HEIGHT << 16) / 2);
 
 	// Set the distance of the perspective projection plane (i.e. the camera's
 	// focal length), which affects the field of view.
-	int focalLength = (width < height) ? width : height;
+	int _focallen = (GFX::SCREEN_WIDTH < GFX::SCREEN_HEIGHT) ? GFX::SCREEN_WIDTH : GFX::SCREEN_HEIGHT;
 
-	gte_setControlReg(GTE_H, focalLength / 2);
+	gte_setControlReg(GTE_H, _focallen / 2);
 
 	// Set the scaling factor for Z averaging. For each polygon drawn, the GTE
 	// will sum the transformed Z coordinates of its vertices multiplied by this
@@ -58,47 +58,47 @@ void multiplyCurrentMatrixByVectors(GTEMatrix *output) {
 }
 
 void rotateCurrentMatrix(int yaw, int pitch, int roll) {
-	static GTEMatrix multiplied;
-	int s, c;
+	static GTEMatrix _multiplied;
+	int _s, _c;
 
 	// For each axis, compute the rotation matrix then "combine" it with the
 	// GTE's current matrix by multiplying the two and writing the result back
 	// to the GTE's registers.
 	if (yaw) {
-		s = TRIG::isin(yaw);
-		c = TRIG::icos(yaw);
+		_s = TRIG::isin(yaw);
+		_c = TRIG::icos(yaw);
 
 		gte_setColumnVectors(
-			c, -s,   0,
-			s,  c,   0,
-			0,  0, ONE
+			_c, -_s,   0,
+			_s,  _c,   0,
+			 0,   0, ONE
 		);
-		multiplyCurrentMatrixByVectors(&multiplied);
-		gte_loadRotationMatrix(&multiplied);
+		multiplyCurrentMatrixByVectors(&_multiplied);
+		gte_loadRotationMatrix(&_multiplied);
 	}
 	if (pitch) {
-		s = TRIG::isin(pitch);
-		c = TRIG::icos(pitch);
+		_s = TRIG::isin(pitch);
+		_c = TRIG::icos(pitch);
 
 		gte_setColumnVectors(
-			 c,   0, s,
-			 0, ONE, 0,
-			-s,   0, c
+			 _c,   0, _s,
+			  0, ONE,  0,
+			-_s,   0, _c
 		);
-		multiplyCurrentMatrixByVectors(&multiplied);
-		gte_loadRotationMatrix(&multiplied);
+		multiplyCurrentMatrixByVectors(&_multiplied);
+		gte_loadRotationMatrix(&_multiplied);
 	}
 	if (roll) {
-		s = TRIG::isin(roll);
-		c = TRIG::icos(roll);
+		_s = TRIG::isin(roll);
+		_c = TRIG::icos(roll);
 
 		gte_setColumnVectors(
-			ONE, 0,  0,
-			  0, c, -s,
-			  0, s,  c
+			ONE,  0,   0,
+			  0, _c, -_s,
+			  0, _s,  _c
 		);
-		multiplyCurrentMatrixByVectors(&multiplied);
-		gte_loadRotationMatrix(&multiplied);
+		multiplyCurrentMatrixByVectors(&_multiplied);
+		gte_loadRotationMatrix(&_multiplied);
 	}
 }
 }

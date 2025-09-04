@@ -9,7 +9,7 @@
 namespace GTE {
 #define ONE (1 << 12)
 
-void setupGTE(int width, int height);
+void setupGTE(void);
 void multiplyCurrentMatrixByVectors(GTEMatrix *output);
 void rotateCurrentMatrix(int yaw, int pitch, int roll);
 };

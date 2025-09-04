@@ -21,7 +21,7 @@ void Renderer::init(GP1VideoMode mode) {
 	// horizontal (256, 320, 368, 512, 640) and vertical (240-256, 480-512) resolutions to pick
 	//todo make width and height actually effect it lol
 	GP1HorizontalRes _xres = GP1_HRES_320;
-	GP1VerticalRes   _yres = GP1_VRES_256;
+	GP1VerticalRes   _yres = (SCREEN_HEIGHT > 256) ? GP1_VRES_512 : GP1_VRES_256;
 
 	int _offx = (SCREEN_WIDTH  * gp1_clockMultiplierH(_xres)) / 2;
 	int _offy = (SCREEN_HEIGHT / gp1_clockDividerV(_yres))    / 2;
@@ -62,15 +62,13 @@ void Renderer::beginFrame(void) {
 
     // add gpu commands to clear buffer and set drawing origin to new chain
     // z is set to (ORDERING_TABLE_SIZE - 1) so they're executed before anything else
-	//todo make this in app
-    uint32_t _bgColor = gp0_rgb(64, 64, 64);
-
+	setClearCol(64,64,64);
     auto _ptr = allocatePacket(ORDERING_TABLE_SIZE - 1, 7);
     _ptr[0]   = gp0_texpage(0, true, false);
     _ptr[1]   = gp0_xy(_bufx, _bufy);
     _ptr[2]   = gp0_fbOffset2(_bufx + SCREEN_WIDTH -  1, _bufy + SCREEN_HEIGHT - 2);
     _ptr[3]   = gp0_fbOrigin(_bufx, _bufy);
-    _ptr[4]   = _bgColor | gp0_vramFill();
+    _ptr[4]   = clearcol | gp0_vramFill();
     _ptr[5]   = gp0_xy(_bufx, _bufy);
     _ptr[6]   = gp0_xy(SCREEN_WIDTH, SCREEN_HEIGHT);
 }
@@ -256,7 +254,7 @@ uint32_t *Renderer::allocatePacket(int z, int numcommands) {
     return &_ptr[1];
 }
 
-void Renderer::printString(XY<int32_t> pos, int zIndex, const char *str) {
+void Renderer::printString(XY<int32_t> pos, int z, const char *str) {
 	assert(fontmap);
 	int _curx = pos.x, _cury = pos.y;
 
@@ -290,7 +288,7 @@ void Renderer::printString(XY<int32_t> pos, int zIndex, const char *str) {
 		const RECT<uint8_t> &_rect = fontmap->rects[_c - fontmap->header->firstchar];
 		
 		// Enable blending to make sure any semitransparent pixels in the font get rendered correctly.
-		_ptr    = allocatePacket(zIndex, 4);
+		_ptr    = allocatePacket(z, 4);
 		_ptr[0] = gp0_rectangle(true, true, true);
 		_ptr[1] = gp0_xy(_curx, _cury);
 		_ptr[2] = gp0_uv(fonttex.u + _rect.x, fonttex.v + _rect.y, fonttex.clut);
@@ -299,7 +297,7 @@ void Renderer::printString(XY<int32_t> pos, int zIndex, const char *str) {
 		_curx += _rect.w;
 	}
 	
-	_ptr    = allocatePacket(zIndex, 1);
+	_ptr    = allocatePacket(z, 1);
 	_ptr[0] = gp0_texpage(fonttex.page, false, false);
 }
 
@@ -314,11 +312,11 @@ void uploadTexture(TextureInfo &info, const void *image) {
 
 	int _ncolors = (info.bpp == 8) ? 256 : 16;
 	int _widthdivider = (info.bpp == 8) ? 2 : 4;
-
+	
 	sendVRAMData(_header->texdata(), {_header->vrampos[0], _header->vrampos[1], info.w / _widthdivider, info.h});
 	waitForDMADone();
-//	sendVRAMData(_header->clut(), {_header->clutpos[0], _header->clutpos[1], _ncolors, 1});
-//	waitForDMADone();
+	sendVRAMData(_header->clut(), {_header->clutpos[0], _header->clutpos[1], _ncolors, 1});
+	waitForDMADone();
 }
 
 const ModelFile* loadModel(const uint8_t* data) {

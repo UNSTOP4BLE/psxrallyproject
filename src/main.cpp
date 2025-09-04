@@ -11,16 +11,17 @@ App g_app;
 int main(int argc, const char **argv) {
 	initSerialIO(115200);
 
+	GP1VideoMode mode;
 	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
 		puts("Using PAL mode");
-		g_app.renderer.init(GP1_MODE_PAL);
-
+		mode = GP1_MODE_PAL;
 	} else {
 		puts("Using NTSC mode");
-		g_app.renderer.init(GP1_MODE_NTSC);
+		mode = GP1_MODE_NTSC;
 	}
+	g_app.renderer.init(mode);
 
-	GTE::setupGTE(SCREEN_WIDTH, SCREEN_HEIGHT);
+	GTE::setupGTE();
 	GFX::uploadTexture(g_app.renderer.fonttex, g_myfonttex);
 //	g_app.renderer.fontmap = GFX::loadFontMap(g_myfontmap);
     //auto model = GFX::loadModel(mymodel);
