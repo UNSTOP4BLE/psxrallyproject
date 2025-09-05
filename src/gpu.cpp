@@ -47,6 +47,7 @@ void Renderer::init(GP1VideoMode mode) {
     GPU_GP1 = gp1_dispBlank(false);
 	usingsecondframe = false;
 	framecounter = 0;
+	setClearCol(64,64,64);
 }
 
 void Renderer::beginFrame(void) {
