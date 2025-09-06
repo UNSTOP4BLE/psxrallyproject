@@ -40,7 +40,7 @@ int main(int argc, const char **argv) {
         g_app.curscene->update();  
         g_app.curscene->draw();  
 
-		g_app.renderer.printStringf({5, 5}, 0, "Heap usage: %zu bytes", getHeapUsage());
+		g_app.renderer.printStringf({5, 5}, 0, "Heap usage: %zu/%zu bytes", getHeapUsage(), 0x80200000);
 		g_app.renderer.endFrame();
 	}
 	return 0;
