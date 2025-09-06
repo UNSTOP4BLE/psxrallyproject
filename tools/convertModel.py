@@ -160,8 +160,8 @@ if (__name__ == '__main__'):
 
         #uv texture data
         if (data[0] == "vt"):
-            u = 1.0 - float(data[1])
-            v = float(data[2])
+            u = float(data[1])
+            v = 1.0 - float(data[2])
             uvs.append([u, v])
 
         #read faces 

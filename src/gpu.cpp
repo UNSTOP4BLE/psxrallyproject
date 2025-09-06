@@ -161,23 +161,28 @@ void Renderer::drawModel(const ModelFile *model, GTEVector32 pos, GTEVector32 ro
 		// Determine the winding order of the vertices on screen. If they
 		// are ordered clockwise then the face is visible, otherwise it can
 		// be skipped as it is not facing the camera.
-		gte_command(GTE_CMD_NCLIP);
+//		gte_command(GTE_CMD_NCLIP);
 
-		if (gte_getDataReg(GTE_MAC0) <= 0)
-			continue;
+//		if (gte_getDataReg(GTE_MAC0) <= 0)
+//			continue;
 		
 		// Save the first transformed vertex (the GTE only keeps the X/Y
 		// coordinates of the last 3 vertices processed and Z coordinates of
 		// the last 4 vertices processed) and apply projection to the last
 		// vertex.
-		uint32_t _xy0 = gte_getDataReg(GTE_SXY0);
+		uint32_t _xy0 = 0;
 		if (!_istriangle) {
+			_xy0 = gte_getDataReg(GTE_SXY0);
 			gte_loadV0(&model->vertices[_face->indices[3]]);
 			gte_command(GTE_CMD_RTPS | GTE_SF);
 		}
 		// Calculate the average Z coordinate of all vertices and use it to
 		// determine the ordering table bucket index for this face.
-		gte_command(GTE_CMD_AVSZ4 | GTE_SF);
+		if (_istriangle)
+			gte_command(GTE_CMD_AVSZ3 | GTE_SF);
+		else
+			gte_command(GTE_CMD_AVSZ4 | GTE_SF);
+
 		int _z = gte_getDataReg(GTE_OTZ);
 
 		if ((_z < 0) || (_z >= ORDERING_TABLE_SIZE))
@@ -195,11 +200,11 @@ void Renderer::drawModel(const ModelFile *model, GTEVector32 pos, GTEVector32 ro
 			if (_istriangle) {
 				_ptr           = allocatePacket(_z, 7);
 				_ptr[0]        = _face->color | gp0_shadedTriangle(false, true, false);
-				_ptr[1]        = _xy0;
+				gte_storeDataReg(GTE_SXY0, 1 * 4, _ptr);
 				_ptr[2]        = gp0_uv(_face->u[0], _face->v[0], _clut);
-				gte_storeDataReg(GTE_SXY1, 4 * 4, _ptr);
+				gte_storeDataReg(GTE_SXY1, 3 * 4, _ptr);
 				_ptr[4]        = gp0_uv(_face->u[1], _face->v[1], _page);
-				gte_storeDataReg(GTE_SXY2, 6 * 4, _ptr);
+				gte_storeDataReg(GTE_SXY2, 5 * 4, _ptr);
 				_ptr[6]        = gp0_uv(_face->u[2], _face->v[2], 0);
 			}
 			else { //quad
@@ -207,11 +212,11 @@ void Renderer::drawModel(const ModelFile *model, GTEVector32 pos, GTEVector32 ro
 				_ptr[0]    = _face->color | gp0_shadedQuad(false, true, false);
 				_ptr[1]    = _xy0;
 				_ptr[2]    = gp0_uv(_face->u[0], _face->v[0], _clut);
-				gte_storeDataReg(GTE_SXY0, 4 * 4, _ptr);
+				gte_storeDataReg(GTE_SXY0, 3 * 4, _ptr);
 				_ptr[4]    = gp0_uv(_face->u[1], _face->v[1], _page);
-				gte_storeDataReg(GTE_SXY1, 6 * 4, _ptr);
+				gte_storeDataReg(GTE_SXY1, 5 * 4, _ptr);
 				_ptr[6]    = gp0_uv(_face->u[2], _face->v[2], 0);
-				gte_storeDataReg(GTE_SXY2, 8 * 4, _ptr);
+				gte_storeDataReg(GTE_SXY2, 7 * 4, _ptr);
 				_ptr[8]    = gp0_uv(_face->u[3], _face->v[3], 0);
 			}	
 
@@ -225,7 +230,7 @@ void Renderer::drawModel(const ModelFile *model, GTEVector32 pos, GTEVector32 ro
 			if (_istriangle) {
 				_ptr    = allocatePacket(_z,6);
 				_ptr[0] = _face->color | gp0_shadedTriangle(true, false, false);
-				_ptr[1] = _xy0;
+				gte_storeDataReg(GTE_SXY0, 1 * 4, _ptr);
 				_ptr[2] = _face->color;
 				gte_storeDataReg(GTE_SXY1, 3 * 4, _ptr);
 				_ptr[4] = _face->color;
