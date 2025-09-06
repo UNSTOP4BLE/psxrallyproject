@@ -11,7 +11,7 @@ void TestSCN::update(void) {
 
 void TestSCN::draw(void) {
     x += 5;
-    g_app.renderer.drawModel(carmodel, {0, 0, 256}, {0, x, 90+2048});
+    g_app.renderer.drawModel(carmodel, {0, 32, 0}, {0, x, 90+2048});
 }
 
 TestSCN::~TestSCN(void) {

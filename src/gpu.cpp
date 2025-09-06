@@ -161,10 +161,10 @@ void Renderer::drawModel(const ModelFile *model, GTEVector32 pos, GTEVector32 ro
 		// Determine the winding order of the vertices on screen. If they
 		// are ordered clockwise then the face is visible, otherwise it can
 		// be skipped as it is not facing the camera.
-//		gte_command(GTE_CMD_NCLIP);
+		gte_command(GTE_CMD_NCLIP);
 
-//		if (gte_getDataReg(GTE_MAC0) <= 0)
-//			continue;
+		if (gte_getDataReg(GTE_MAC0) <= 0)
+			continue;
 		
 		// Save the first transformed vertex (the GTE only keeps the X/Y
 		// coordinates of the last 3 vertices processed and Z coordinates of
