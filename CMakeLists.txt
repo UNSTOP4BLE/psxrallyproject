@@ -59,18 +59,18 @@ convertImage(
 addBinaryFile(PSXRallyProject g_myfonttex "${PROJECT_BINARY_DIR}/assets/font.xtex")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
 
 convertImage(
-    assets/texture.png
-    assets/texture.xtex
-    assets/texture.vram
+    assets/car.png
+    assets/car.xtex
+    assets/car.vram
 )
-addBinaryFile(PSXRallyProject g_mytex "${PROJECT_BINARY_DIR}/assets/texture.xtex")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
+addBinaryFile(PSXRallyProject g_mytex "${PROJECT_BINARY_DIR}/assets/car.xtex")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
 
 convertModel(
-	assets/cube.obj #in 
-	assets/cube.xmdl #out 
+	assets/car.obj #in 
+	assets/car.xmdl #out 
 	assets/ #texture directory
 )
-addBinaryFile(PSXRallyProject g_mymodel "${PROJECT_BINARY_DIR}/assets/cube.xmdl")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
+addBinaryFile(PSXRallyProject g_mymodel "${PROJECT_BINARY_DIR}/assets/car.xmdl")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
 
 convertFont(
 	assets/font.json #in 

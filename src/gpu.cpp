@@ -129,17 +129,17 @@ void Renderer::drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uin
 }
 
 //to clean up
-void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ) {
-	gte_setControlReg(GTE_TRX,  tx);
-	gte_setControlReg(GTE_TRY,  ty);
-	gte_setControlReg(GTE_TRZ,  tz);
+void Renderer::drawModel(const ModelFile *model, GTEVector32 pos, GTEVector32 rot) {
+	gte_setControlReg(GTE_TRX, pos.x);
+	gte_setControlReg(GTE_TRY, pos.y);
+	gte_setControlReg(GTE_TRZ, pos.z);
 	gte_setRotationMatrix(
 		ONE,   0,   0,
 		  0, ONE,   0,
 		  0,   0, ONE
 	);
 
-	GTE::rotateCurrentMatrix(rotX, rotY, rotZ);
+	GTE::rotateCurrentMatrix(rot.x, rot.y, rot.z);
 
 	int _lasttexid = -1;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../scene.hpp"
+#include "../app.hpp"
 
 class TestSCN : public SCENE::Scene {
 public:
@@ -9,4 +9,5 @@ public:
     void draw(void);
     ~TestSCN(void); 
 private:
+    const GFX::ModelFile* carmodel;
 };

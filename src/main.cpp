@@ -6,8 +6,6 @@
 
 #include "scenes/test.hpp"
 
-extern const uint8_t g_mytex[];
-extern const uint8_t g_mymodel[];
 extern const uint8_t g_myfontmap[];
 extern const uint8_t g_myfonttex[];
 
@@ -25,7 +23,7 @@ int main(int argc, const char **argv) {
 		mode = GP1_MODE_NTSC;
 	}
 	g_app.renderer.init(mode);
-
+	
 	GTE::setupGTE();
 	GFX::uploadTexture(g_app.renderer.fonttex, g_myfonttex);
 	g_app.renderer.fontmap = GFX::loadFontMap(g_myfontmap);

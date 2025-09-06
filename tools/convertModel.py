@@ -45,8 +45,8 @@ class TextureInfo(ctypes.LittleEndianStructure):
     _fields_ = [
         ("u", ctypes.c_uint8),
         ("v", ctypes.c_uint8),
-        ("width", ctypes.c_uint16),
-        ("height", ctypes.c_uint16),
+        ("w", ctypes.c_uint16),
+        ("h", ctypes.c_uint16),
         ("page", ctypes.c_uint16),
         ("clut", ctypes.c_uint16),
         ("bpp", ctypes.c_uint16)
@@ -63,11 +63,12 @@ class TexHeader(ctypes.LittleEndianStructure):
         ("texsize", ctypes.c_uint16) 
     ]
 
+
 def reorder_z_shape(indices):
     print(indices)
-    if len(indices) == 4:
+    if (len(indices) == 4):
         return [indices[0], indices[1], indices[3], indices[2]]
-    elif len(indices) == 3:
+    elif (len(indices) == 3):
         return [indices[0], indices[1], indices[2], -1]  # Pad triangle
     else:
         raise ValueError(f"Invalid face: {indices}")
@@ -89,14 +90,14 @@ def error(txt):
     print(txt, file=sys.stderr)
     sys.exit(1)
     
-if __name__ == '__main__':
+if (__name__ == '__main__'):
     materials = []
     vertices = []
     uvs = []
     faces = []
     textures = []
 
-    if len(sys.argv) < 4:
+    if (len(sys.argv) < 4):
         error("wrong args, usage: convertModel [in] [out] [out texture dir]")
     #open the obj file
     fin = open(sys.argv[1], 'r')
@@ -107,15 +108,16 @@ if __name__ == '__main__':
     mtl_file = match.group(1) if match else None
     print("material file:", mtl_file)
 
-    if mtl_file is not None:
+    if (mtl_file is not None):
         fmtl = open(os.path.join(os.path.dirname(sys.argv[1]), mtl_file), 'r')
 
         curmat = None
         for line in fmtl.readlines():
             data = line.split()
-                
+            if (len(data) == 0):
+                continue
             #start new material
-            if re.search("^newmtl ", line):
+            if (data[0] == "newmtl"):
                 if curmat is not None:  #save previous material if exists
                     print("adding material", curmat.name)
                     materials.append(curmat)
@@ -123,18 +125,19 @@ if __name__ == '__main__':
                 curmat.name = data[1]
                 
             #diffuse color
-            elif curmat and re.search("^Kd ", line):
+            elif (curmat and data[0] == "Kd"):
                 curmat.setcol(data[1], data[2], data[3])
                 
             #texture
-            elif curmat and re.search("^map_Kd ", line):
+            elif (curmat and data[0] == "map_Kd"):
                 texpath = data[1]
                 textures.append(texpath)
+                print("found texture", texpath)
                 curmat.texture = texpath
                 curmat.texid = textures.index(texpath)
         
         #append the last material if it exists
-        if curmat:
+        if (curmat):
             print("adding material", curmat.name)
             materials.append(curmat)
             
@@ -144,9 +147,10 @@ if __name__ == '__main__':
     curmat = None
     for line in fin.readlines():
         data = line.split()
-
+        if (len(data) == 0):
+            continue
         #vertices
-        if (re.search("^v ", line)):
+        if (data[0] == "v"):
             v = GTEVector16()
             #should be fixed point, 4096 instead of 32
             v.x = int(float(data[1])*32)
@@ -155,32 +159,32 @@ if __name__ == '__main__':
             vertices.append(v)
 
         #uv texture data
-        if (re.search("^vt ", line)):
+        if (data[0] == "vt"):
             u = 1.0 - float(data[1])
             v = float(data[2])
             uvs.append([u, v])
 
         #read faces 
         #change material if found
-        if (re.search("^usemtl ", line)):
+        if (data[0] == "usemtl"):
             curmat = next((m for m in materials if m.name == data[1]), None)
             print("using material", data[1])
 
         #faces 
-        if (re.search("^f ", line)):
+        if (data[0] == "f"):
             f = Face()
             matches = re.findall(r'(\d+)(?:/(\d*)/?(\d*))?\s*', line)
             #indices
             vert_indices = [int(v) - 1 for v, vt, vn in matches if v != '']
             f.indices[:] = reorder_z_shape(vert_indices)
 
-            if curmat is not None: 
+            if (curmat is not None): 
                 f.color = curmat.color
-                if not curmat.texid < 0: #face is textured
+                if (not curmat.texid < 0): #face is textured
                     tex = open(os.path.join(sys.argv[3], os.path.splitext(curmat.texture)[0] + ".xtex"), 'rb')
                     data = tex.read(ctypes.sizeof(TexHeader))
                     texheader = TexHeader.from_buffer_copy(data)
-                    width, height = texheader.texinfo.width, texheader.texinfo.height
+                    width, height = texheader.texinfo.w, texheader.texinfo.h
                     width -= 1
                     height -= 1
                     tex.close()

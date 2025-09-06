@@ -129,7 +129,7 @@ public:
 	void drawRect(RECT<int32_t> rect, int z, uint32_t col);
 	void drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, int col);
     void drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uint32_t col);
-	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ); //todo dont use random ints as args
+	void drawModel(const ModelFile *model, GTEVector32 pos, GTEVector32 rot);
 	void printString(XY<int32_t> pos, int z, const char *str);
     void printStringf(XY<int32_t> pos, int z, const char *fmt, ...);
     
