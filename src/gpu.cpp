@@ -1,5 +1,6 @@
-#include "gpu.h"
+#include "gpu.hpp"
 #include <assert.h>
+#include <stdio.h>
 #include <stdint.h>
 #include "ps1/registers.h"
 
@@ -140,6 +141,8 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 
 	GTE::rotateCurrentMatrix(rotX, rotY, rotZ);
 
+	int _lasttexid = -1;
+
 	for (int i = 0; i < static_cast<int>(model->header->numfaces); i++) {
 		const Face *_face = &model->faces[i];
 
@@ -183,53 +186,58 @@ void Renderer::drawModel(const ModelFile *model, int tx, int ty, int tz, int rot
 		// Create a new quad and give its vertices the X/Y coordinates
 		// calculated by the GTE.
 
+		uint32_t *_ptr;
 		//todo set texture only once
 		if (_face->texid >= 0) { //textured
-			auto clut = model->textures[_face->texid].clut;
-			auto page = model->textures[_face->texid].page;
-
+			auto _clut = model->textures[_face->texid].clut;
+			auto _page = model->textures[_face->texid].page;
+			
 			if (_istriangle) {
-				auto *ptr = allocatePacket(_z, 8);
-				ptr[0]        = gp0_texpage(page, false, false); // set texture page and CLUT
-				ptr[1]        = _face->color | gp0_shadedTriangle(false, true, false);
-				ptr[2]        = _xy0;
-				ptr[3]        = gp0_uv(_face->u[0], _face->v[0], clut);
-				gte_storeDataReg(GTE_SXY1, 4 * 4, ptr);
-				ptr[5]        = gp0_uv(_face->u[1], _face->v[1], page);
-				gte_storeDataReg(GTE_SXY2, 6 * 4, ptr);
-				ptr[7]        = gp0_uv(_face->u[2], _face->v[2], 0);
+				_ptr           = allocatePacket(_z, 7);
+				_ptr[0]        = _face->color | gp0_shadedTriangle(false, true, false);
+				_ptr[1]        = _xy0;
+				_ptr[2]        = gp0_uv(_face->u[0], _face->v[0], _clut);
+				gte_storeDataReg(GTE_SXY1, 4 * 4, _ptr);
+				_ptr[4]        = gp0_uv(_face->u[1], _face->v[1], _page);
+				gte_storeDataReg(GTE_SXY2, 6 * 4, _ptr);
+				_ptr[6]        = gp0_uv(_face->u[2], _face->v[2], 0);
 			}
 			else { //quad
-	    		auto *ptr = allocatePacket(_z, 10);
-				ptr[0]    = gp0_texpage(page, false, false); // set texture page and CLUT
-				ptr[1]    = _face->color | gp0_shadedQuad(false, true, false);
-				ptr[2]    = _xy0;
-				ptr[3]    = gp0_uv(_face->u[0], _face->v[0], clut);
-				gte_storeDataReg(GTE_SXY0, 4 * 4, ptr);
-				ptr[5]    = gp0_uv(_face->u[1], _face->v[1], page);
-				gte_storeDataReg(GTE_SXY1, 6 * 4, ptr);
-				ptr[7]    = gp0_uv(_face->u[2], _face->v[2], 0);
-				gte_storeDataReg(GTE_SXY2, 8 * 4, ptr);
-				ptr[9]    = gp0_uv(_face->u[3], _face->v[3], 0);
-			}			
+	    		_ptr       = allocatePacket(_z, 9);
+				_ptr[0]    = _face->color | gp0_shadedQuad(false, true, false);
+				_ptr[1]    = _xy0;
+				_ptr[2]    = gp0_uv(_face->u[0], _face->v[0], _clut);
+				gte_storeDataReg(GTE_SXY0, 4 * 4, _ptr);
+				_ptr[4]    = gp0_uv(_face->u[1], _face->v[1], _page);
+				gte_storeDataReg(GTE_SXY1, 6 * 4, _ptr);
+				_ptr[6]    = gp0_uv(_face->u[2], _face->v[2], 0);
+				gte_storeDataReg(GTE_SXY2, 8 * 4, _ptr);
+				_ptr[8]    = gp0_uv(_face->u[3], _face->v[3], 0);
+			}	
+
+			if (_lasttexid != _face->texid) {
+	    		_ptr       = allocatePacket(_z, 1);
+				_ptr[0]    = gp0_texpage(_page, false, false); // set texture page and CLUT		
+				_lasttexid = _face->texid;
+			}
 		}
 		else  { //untextured
 			if (_istriangle) {
-				auto ptr = allocatePacket(_z,6);
-				ptr[0] = _face->color | gp0_shadedTriangle(true, false, false);
-				ptr[1] = _xy0;
-				ptr[2] = _face->color;
-				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
-				ptr[4] = _face->color;
-				gte_storeDataReg(GTE_SXY2, 5 * 4, ptr);
+				_ptr    = allocatePacket(_z,6);
+				_ptr[0] = _face->color | gp0_shadedTriangle(true, false, false);
+				_ptr[1] = _xy0;
+				_ptr[2] = _face->color;
+				gte_storeDataReg(GTE_SXY1, 3 * 4, _ptr);
+				_ptr[4] = _face->color;
+				gte_storeDataReg(GTE_SXY2, 5 * 4, _ptr);
 			}
 			else { //quad
-	    		auto ptr    = allocatePacket(_z, 5);
-				ptr[0] = _face->color | gp0_shadedQuad(false, false, false);
-				ptr[1] = _xy0;
-				gte_storeDataReg(GTE_SXY0, 2 * 4, ptr);
-				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
-				gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
+	    		_ptr    = allocatePacket(_z, 5);
+				_ptr[0] = _face->color | gp0_shadedQuad(false, false, false);
+				_ptr[1] = _xy0;
+				gte_storeDataReg(GTE_SXY0, 2 * 4, _ptr);
+				gte_storeDataReg(GTE_SXY1, 3 * 4, _ptr);
+				gte_storeDataReg(GTE_SXY2, 4 * 4, _ptr);
 			}
 		}
 	}
@@ -253,7 +261,7 @@ uint32_t *Renderer::allocatePacket(int z, int numcommands) {
     return &_ptr[1];
 }
 
-void Renderer::printString(XY<int32_t> pos, const char *str, int z) {
+void Renderer::printString(XY<int32_t> pos, int z, const char *str) {
 	assert(fontmap);
 	int _curx = pos.x, _cury = pos.y;
 
@@ -300,32 +308,21 @@ void Renderer::printString(XY<int32_t> pos, const char *str, int z) {
 	_ptr[0] = gp0_texpage(fonttex.page, false, false);
 }
 
-#include <stdio.h>
+void Renderer::printStringf(XY<int32_t> pos, int z, const char *fmt, ...) {
+    char buf[256];  // Adjust size as needed
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+
+    printString(pos, z, buf);
+}
+
 //indexed
 void uploadTexture(TextureInfo &info, const void *image) {
     const TexHeader* _header = reinterpret_cast<const TexHeader*>(image);
 	assert(_header->isValid());
 	info = _header->texinfo;
-
-    printf("=== TexHeader ===\n");
-    printf("Magic: 0x%08X (%s)\n",
-           _header->magic,
-           _header->isValid() ? "valid" : "invalid");
-
-    printf("TextureInfo:\n");
-    printf("  u: %u\n", info.u);
-    printf("  v: %u\n", info.v);
-    printf("  w: %u\n", info.w);
-    printf("  h: %u\n", info.h);
-    printf("  page: %u\n", info.page);
-    printf("  clut: %u\n", info.clut);
-    printf("  bpp: %u\n", info.bpp);
-
-    printf("VRAM position:  (%u, %u)\n", _header->vrampos[0], _header->vrampos[1]);
-    printf("CLUT position:  (%u, %u)\n", _header->clutpos[0], _header->clutpos[1]);
-    printf("CLUT size:      %u bytes (%u entries)\n",
-           _header->clutsize, _header->clutsize / sizeof(uint16_t));
-    printf("Texture size:   %u bytes\n", _header->texsize);
 
 	assert((info.w <= 256) && (info.h <= 256));
 

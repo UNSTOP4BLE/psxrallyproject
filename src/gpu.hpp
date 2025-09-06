@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ps1/gpucmd.h"
-#include "gte.h"
+#include "gte.hpp"
 
 // In order for Z averaging to work properly, ORDERING_TABLE_SIZE should be set
 // to either a relatively high value (1024 or more) or a multiple of 12; see
@@ -130,8 +130,9 @@ public:
 	void drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, int col);
     void drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uint32_t col);
 	void drawModel(const ModelFile *model, int tx, int ty, int tz, int rotX, int rotY, int rotZ); //todo dont use random ints as args
-	void printString(XY<int32_t> pos, const char *str, int z);
-
+	void printString(XY<int32_t> pos, int z, const char *str);
+    void printStringf(XY<int32_t> pos, int z, const char *fmt, ...);
+    
     void setClearCol(uint8_t r, uint8_t g, uint8_t b) {
         clearcol = gp0_rgb(r, g, b);
     }

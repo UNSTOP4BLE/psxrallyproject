@@ -1,6 +1,10 @@
-#include "app.h"
+#include "app.hpp"
 #include <stdio.h>
+#include <assert.h>
+#include <stdlib.h>
 #include "ps1/registers.h"
+
+#include "scenes/test.hpp"
 
 extern const uint8_t g_mytex[];
 extern const uint8_t g_mymodel[];
@@ -8,6 +12,7 @@ extern const uint8_t g_myfontmap[];
 extern const uint8_t g_myfonttex[];
 
 App g_app;
+
 int main(int argc, const char **argv) {
 	initSerialIO(115200);
 
@@ -24,17 +29,18 @@ int main(int argc, const char **argv) {
 	GTE::setupGTE();
 	GFX::uploadTexture(g_app.renderer.fonttex, g_myfonttex);
 	g_app.renderer.fontmap = GFX::loadFontMap(g_myfontmap);
-    //auto model = GFX::loadModel(mymodel);
-	int _x = 0;
+
+	SCENE::set(new TestSCN());
+
 	while(1) {
 		g_app.renderer.beginFrame();
 		
-//		_x += 10;
-//		g_app.renderer.drawTexQuad(g_app.renderer.fonttex, {0, 0, 320, 240}, 0, 0x808080);
-    	//app.renderer.drawModel(model,
-        //	  0, 0, 0,                  // translation
-          //    0, x, 90);
-		g_app.renderer.printString({50, 50}, "hello world!", 0);
+		assert(g_app.curscene);
+     
+        g_app.curscene->update();  
+        g_app.curscene->draw();  
+
+		g_app.renderer.printStringf({5, 5}, 0, "Heap usage: %zu bytes", getHeapUsage());
 		g_app.renderer.endFrame();
 	}
 	return 0;

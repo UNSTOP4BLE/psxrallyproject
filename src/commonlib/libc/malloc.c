@@ -22,7 +22,14 @@
 #include <stdlib.h>
 
 #define _align(x, n) (((x) + ((n) - 1)) & ~((n) - 1))
-#define _updateHeapUsage(incr)
+
+static size_t g_heap_usage = 0;
+
+#define _updateHeapUsage(incr) (g_heap_usage += (incr))
+
+size_t getHeapUsage(void) {
+    return g_heap_usage;
+}
 
 /* Internal state */
 

@@ -37,6 +37,7 @@ long long strtoll(const char *str, char **str_end, int base);
 
 void *sbrk(ptrdiff_t incr);
 
+size_t getHeapUsage(void);
 void *malloc(size_t size);
 void *calloc(size_t num, size_t size);
 void *realloc(void *ptr, size_t size);

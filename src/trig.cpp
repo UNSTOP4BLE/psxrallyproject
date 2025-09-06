@@ -4,7 +4,7 @@
 *     https://www.coranac.com/2009/07/sines
 */
 
-#include "trig.h"
+#include "trig.hpp"
 
 namespace TRIG {
 #define A (1 << 12)
