@@ -35,6 +35,9 @@ void abort(void);
 long strtol(const char *str, char **str_end, int base);
 long long strtoll(const char *str, char **str_end, int base);
 
+extern uintptr_t _heapEnd;
+extern uintptr_t _heapLimit; // TODO: add a way to change this
+
 void *sbrk(ptrdiff_t incr);
 
 size_t getHeapUsage(void);

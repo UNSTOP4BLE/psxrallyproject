@@ -90,7 +90,7 @@ struct [[gnu::packed]] ModelFileHeader {
 	}
 };
 
-struct [[gnu::packed]] ModelFile {
+struct [[gnu::packed]] Model {
 	const ModelFileHeader *header;
     const GTEVector16 *vertices;
     const Face *faces;
@@ -129,7 +129,7 @@ public:
 	void drawRect(RECT<int32_t> rect, int z, uint32_t col);
 	void drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, int col);
     void drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uint32_t col);
-	void drawModel(const ModelFile *model, GTEVector32 pos, GTEVector32 rot);
+	void drawModel(const Model *model, GTEVector32 pos, GTEVector32 rot);
 	void printString(XY<int32_t> pos, int z, const char *str);
     void printStringf(XY<int32_t> pos, int z, const char *fmt, ...);
     
@@ -152,7 +152,7 @@ private:
 };
 
 void uploadTexture(TextureInfo &info, const void *image);
-const ModelFile *loadModel(const uint8_t *data);
+const Model *loadModel(const uint8_t *data);
 FontData *loadFontMap(const uint8_t *data);
 
 }

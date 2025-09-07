@@ -1,12 +1,12 @@
 #pragma once 
 
 #include "gpu.hpp"
-#include "scene.hpp"
+#include "engine/scene.hpp"
 
 class App {
 public:
 	GFX::Renderer renderer;
-	SCENE::Scene *curscene;
+	ENGINE::SCENE::Scene *curscene;
 };
 
 extern App g_app;

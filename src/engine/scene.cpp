@@ -1,7 +1,7 @@
 #include "scene.hpp"
-#include "app.hpp"
+#include "../app.hpp"
 
-namespace SCENE {
+namespace ENGINE::SCENE {
 
 void set(Scene *scn) {   
     if (g_app.curscene != NULL)

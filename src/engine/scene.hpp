@@ -1,6 +1,6 @@
 #pragma once
 
-namespace SCENE {
+namespace ENGINE::SCENE {
 
 class Scene {
 public:

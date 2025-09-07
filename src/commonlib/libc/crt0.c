@@ -34,8 +34,8 @@ extern const Function _finiArrayStart[], _finiArrayEnd[];
 
 #define ALIGN(x, n) (((x) + ((n) - 1)) & ~((n) - 1))
 
-static uintptr_t _heapEnd   = (uintptr_t) _bssEnd;
-static uintptr_t _heapLimit = 0x80200000; // TODO: add a way to change this
+uintptr_t _heapEnd   = (uintptr_t) _bssEnd;
+uintptr_t _heapLimit = 0x80200000; // TODO: add a way to change this
 
 void *sbrk(ptrdiff_t incr) {
 	uintptr_t currentEnd = _heapEnd;

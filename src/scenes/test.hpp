@@ -2,12 +2,14 @@
 
 #include "../app.hpp"
 
-class TestSCN : public SCENE::Scene {
+#include "../engine/object.hpp"
+
+class TestSCN : public ENGINE::SCENE::Scene {
 public:
     TestSCN(void);
     void update(void);
     void draw(void);
     ~TestSCN(void); 
 private:
-    const GFX::ModelFile* carmodel;
+    ENGINE::Object3D car;
 };

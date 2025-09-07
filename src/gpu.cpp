@@ -16,23 +16,39 @@ void Renderer::init(GP1VideoMode mode) {
 	// Set the origin of the displayed framebuffer. These "magic" values,
 	// derived from the GPU's internal clocks, will center the picture on most
 	// displays and upscalers.
-	int _x = 0x760;
-	int _y = (mode == GP1_MODE_PAL) ? 0xa3 : 0x88;
+	int x = 0x760;
+	int y = (mode == GP1_MODE_PAL) ? 0xa3 : 0x88;
 
 	// horizontal (256, 320, 368, 512, 640) and vertical (240-256, 480-512) resolutions to pick
-	//todo make width and height actually effect it lol
-	GP1HorizontalRes _xres = GP1_HRES_320;
-	GP1VerticalRes   _yres = (SCREEN_HEIGHT > 256) ? GP1_VRES_512 : GP1_VRES_256;
+	GP1HorizontalRes hres;
+	switch (SCREEN_WIDTH) {
+		case 256:
+			hres = GP1_HRES_256;
+			break;
+		case 320:
+			hres = GP1_HRES_320;
+			break;
+		case 368:
+			hres = GP1_HRES_368;
+			break;
+		case 512:
+			hres = GP1_HRES_512;
+			break;
+		case 640:
+			hres = GP1_HRES_640;
+			break;
+	}
+	GP1VerticalRes vres = (SCREEN_HEIGHT > 256) ? GP1_VRES_512 : GP1_VRES_256;
 
-	int _offx = (SCREEN_WIDTH  * gp1_clockMultiplierH(_xres)) / 2;
-	int _offy = (SCREEN_HEIGHT / gp1_clockDividerV(_yres))    / 2;
+	int offx = (SCREEN_WIDTH  * gp1_clockMultiplierH(hres)) / 2;
+	int offy = (SCREEN_HEIGHT / gp1_clockDividerV(vres))    / 2;
 
 	GPU_GP1 = gp1_resetGPU();
-	GPU_GP1 = gp1_fbRangeH(_x - _offx, _x + _offx);
-	GPU_GP1 = gp1_fbRangeV(_y - _offy, _y + _offy);
+	GPU_GP1 = gp1_fbRangeH(x - offx, x + offx);
+	GPU_GP1 = gp1_fbRangeV(y - offy, y + offy);
 	GPU_GP1 = gp1_fbMode(
-		_xres,
-		_yres,
+		hres,
+		vres,
 		mode,
 		false,
 		GP1_COLOR_16BPP
@@ -52,46 +68,46 @@ void Renderer::init(GP1VideoMode mode) {
 }
 
 void Renderer::beginFrame(void) {
-    auto _newchain = getCurrentChain();
+    auto newchain = getCurrentChain();
 
     // determine where new framebuffer to draw to is in vram
-    int _bufx = usingsecondframe ? SCREEN_WIDTH : 0;
-    int _bufy = 0;
+    int bufx = 0;
+    int bufy = usingsecondframe ? SCREEN_HEIGHT : 0;
 
     // clear and prepare new chain
-    clearOT(_newchain->orderingtable, ORDERING_TABLE_SIZE);
-    _newchain->nextpacket = _newchain->data;
+    clearOT(newchain->orderingtable, ORDERING_TABLE_SIZE);
+    newchain->nextpacket = newchain->data;
 
     // add gpu commands to clear buffer and set drawing origin to new chain
     // z is set to (ORDERING_TABLE_SIZE - 1) so they're executed before anything else
-    auto _ptr = allocatePacket(ORDERING_TABLE_SIZE - 1, 7);
-    _ptr[0]   = gp0_texpage(0, true, false);
-    _ptr[1]   = gp0_xy(_bufx, _bufy);
-    _ptr[2]   = gp0_fbOffset2(_bufx + SCREEN_WIDTH -  1, _bufy + SCREEN_HEIGHT - 2);
-    _ptr[3]   = gp0_fbOrigin(_bufx, _bufy);
-    _ptr[4]   = clearcol | gp0_vramFill();
-    _ptr[5]   = gp0_xy(_bufx, _bufy);
-    _ptr[6]   = gp0_xy(SCREEN_WIDTH, SCREEN_HEIGHT);
+    auto ptr = allocatePacket(ORDERING_TABLE_SIZE - 1, 7);
+    ptr[0]   = gp0_texpage(0, true, false);
+    ptr[1]   = gp0_xy(bufx, bufy);
+    ptr[2]   = gp0_fbOffset2(bufx + SCREEN_WIDTH -  1, bufy + SCREEN_HEIGHT - 2);
+    ptr[3]   = gp0_fbOrigin(bufx, bufy);
+    ptr[4]   = clearcol | gp0_vramFill();
+    ptr[5]   = gp0_xy(bufx, bufy);
+    ptr[6]   = gp0_xy(SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
 void Renderer::endFrame(void) {
-    auto _oldchain = getCurrentChain();
+    auto oldchain = getCurrentChain();
 
     // switch active chain
     usingsecondframe = !usingsecondframe;
 
     // determine where new framebuffer to display is in vram
-    int _bufx = usingsecondframe ? SCREEN_WIDTH : 0;
-    int _bufy = 0;
+    int bufx = 0;
+    int bufy = usingsecondframe ? SCREEN_HEIGHT : 0;
 
     // display new framebuffer after vsync
     waitForGP0Ready();
     waitForVSync();
-    GPU_GP1 = gp1_fbOffset(_bufx, _bufy);
+    GPU_GP1 = gp1_fbOffset(bufx, bufy);
 
     // terminate and start drawing current chain
-    *(_oldchain->nextpacket) = gp0_endTag(0);
-    sendLinkedList(&(_oldchain->orderingtable)[ORDERING_TABLE_SIZE - 1]);
+    *(oldchain->nextpacket) = gp0_endTag(0);
+    sendLinkedList(&(oldchain->orderingtable)[ORDERING_TABLE_SIZE - 1]);
 }
 
 static inline void addPacketData(uint32_t *ptr, int i, uint32_t p) {
@@ -99,37 +115,37 @@ static inline void addPacketData(uint32_t *ptr, int i, uint32_t p) {
 }
 
 void Renderer::drawRect(RECT<int32_t> rect, int z, uint32_t col) {
-	auto _ptr      = allocatePacket(z, 3);
-	_ptr[0]        = col | gp0_rectangle(false, false, false); 
-	_ptr[1]        = gp0_xy(rect.x, rect.y);       
-	_ptr[2]        = gp0_xy(rect.w, rect.h);  
+	auto ptr      = allocatePacket(z, 3);
+	ptr[0]        = col | gp0_rectangle(false, false, false); 
+	ptr[1]        = gp0_xy(rect.x, rect.y);       
+	ptr[2]        = gp0_xy(rect.w, rect.h);  
 }
 
 void Renderer::drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, int col) {
-	auto _ptr = allocatePacket(z, 5);
-	_ptr[0]        = gp0_texpage(tex.page, false, false);
-	_ptr[1]        = col | gp0_rectangle(true, true, false);
-	_ptr[2]        = gp0_xy(pos.x, pos.y);
-	_ptr[3]        = gp0_uv(tex.u, tex.v, tex.clut);
-	_ptr[4]        = gp0_xy(tex.w, tex.h);
+	auto ptr = allocatePacket(z, 5);
+	ptr[0]        = gp0_texpage(tex.page, false, false);
+	ptr[1]        = col | gp0_rectangle(true, true, false);
+	ptr[2]        = gp0_xy(pos.x, pos.y);
+	ptr[3]        = gp0_uv(tex.u, tex.v, tex.clut);
+	ptr[4]        = gp0_xy(tex.w, tex.h);
 }
 
 void Renderer::drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uint32_t col) {
-    auto *_ptr = allocatePacket(z, 10);
-	_ptr[0]    = gp0_texpage(tex.page, false, false); // set texture page and CLUT
-    _ptr[1]    = col | gp0_shadedQuad(false, true, false);
-    _ptr[2]    = gp0_xy(pos.x, pos.y);
-    _ptr[3]    = gp0_uv(tex.u, tex.v, tex.clut);
-    _ptr[4]    = gp0_xy(pos.x+pos.w, pos.y);
-    _ptr[5]    = gp0_uv(tex.u+tex.w, tex.v, tex.page);
-    _ptr[6]    = gp0_xy(pos.x, pos.y+pos.h);
-    _ptr[7]    = gp0_uv(tex.u, tex.v+tex.h, 0);
-    _ptr[8]    = gp0_xy(pos.x+pos.w, pos.y+pos.h);
-    _ptr[9]    = gp0_uv(tex.u+tex.w, tex.v+tex.h, 0);
+    auto ptr  = allocatePacket(z, 10);
+	ptr[0]    = gp0_texpage(tex.page, false, false); // set texture page and CLUT
+    ptr[1]    = col | gp0_shadedQuad(false, true, false);
+    ptr[2]    = gp0_xy(pos.x, pos.y);
+    ptr[3]    = gp0_uv(tex.u, tex.v, tex.clut);
+    ptr[4]    = gp0_xy(pos.x+pos.w, pos.y);
+    ptr[5]    = gp0_uv(tex.u+tex.w, tex.v, tex.page);
+    ptr[6]    = gp0_xy(pos.x, pos.y+pos.h);
+    ptr[7]    = gp0_uv(tex.u, tex.v+tex.h, 0);
+    ptr[8]    = gp0_xy(pos.x+pos.w, pos.y+pos.h);
+    ptr[9]    = gp0_uv(tex.u+tex.w, tex.v+tex.h, 0);
 }
 
 //to clean up
-void Renderer::drawModel(const ModelFile *model, GTEVector32 pos, GTEVector32 rot) {
+void Renderer::drawModel(const Model *model, GTEVector32 pos, GTEVector32 rot) {
 	gte_setControlReg(GTE_TRX, pos.x);
 	gte_setControlReg(GTE_TRY, pos.y);
 	gte_setControlReg(GTE_TRZ, pos.z);
@@ -141,21 +157,21 @@ void Renderer::drawModel(const ModelFile *model, GTEVector32 pos, GTEVector32 ro
 
 	GTE::rotateCurrentMatrix(rot.x, rot.y, rot.z);
 
-	int _lasttexid = -1;
+	int lasttexid = -1;
 
 	for (int i = 0; i < static_cast<int>(model->header->numfaces); i++) {
-		const Face *_face = &model->faces[i];
+		const Face *face = &model->faces[i];
 
-		bool _istriangle = false;
-		if (_face->indices[3] < 0) //for triangles the 4th indice is negative
-			_istriangle = true;
+		bool istriangle = false;
+		if (face->indices[3] < 0) //for triangles the 4th indice is negative
+			istriangle = true;
 
 		// Apply perspective projection to the first 3 vertices. The GTE can
 		// only process up to 3 vertices at a time, so we'll transform the
 		// last one separately.
-		gte_loadV0(&model->vertices[_face->indices[0]]);
-		gte_loadV1(&model->vertices[_face->indices[1]]);
-		gte_loadV2(&model->vertices[_face->indices[2]]);
+		gte_loadV0(&model->vertices[face->indices[0]]);
+		gte_loadV1(&model->vertices[face->indices[1]]);
+		gte_loadV2(&model->vertices[face->indices[2]]);
 		gte_command(GTE_CMD_RTPT | GTE_SF);
 
 		// Determine the winding order of the vertices on screen. If they
@@ -170,151 +186,148 @@ void Renderer::drawModel(const ModelFile *model, GTEVector32 pos, GTEVector32 ro
 		// coordinates of the last 3 vertices processed and Z coordinates of
 		// the last 4 vertices processed) and apply projection to the last
 		// vertex.
-		uint32_t _xy0 = 0;
-		if (!_istriangle) {
-			_xy0 = gte_getDataReg(GTE_SXY0);
-			gte_loadV0(&model->vertices[_face->indices[3]]);
+		uint32_t xy0 = 0;
+		if (!istriangle) {
+			xy0 = gte_getDataReg(GTE_SXY0);
+			gte_loadV0(&model->vertices[face->indices[3]]);
 			gte_command(GTE_CMD_RTPS | GTE_SF);
-		}
-		// Calculate the average Z coordinate of all vertices and use it to
-		// determine the ordering table bucket index for this face.
-		if (_istriangle)
-			gte_command(GTE_CMD_AVSZ3 | GTE_SF);
-		else
+			
+			// Calculate the average Z coordinate of all vertices and use it to
+			// determine the ordering table bucket index for this face.
 			gte_command(GTE_CMD_AVSZ4 | GTE_SF);
+		}
+		else
+			gte_command(GTE_CMD_AVSZ3 | GTE_SF);
 
-		int _z = gte_getDataReg(GTE_OTZ);
+		int z = gte_getDataReg(GTE_OTZ);
 
-		if ((_z < 0) || (_z >= ORDERING_TABLE_SIZE))
+		if ((z < 0) || (z >= ORDERING_TABLE_SIZE))
 			continue;
 
-		// Create a new quad and give its vertices the X/Y coordinates
-		// calculated by the GTE.
-
-		uint32_t *_ptr;
+		uint32_t *ptr;
 		//todo set texture only once
-		if (_face->texid >= 0) { //textured
-			auto _clut = model->textures[_face->texid].clut;
-			auto _page = model->textures[_face->texid].page;
+		if (face->texid >= 0) { //textured
+			auto clut = model->textures[face->texid].clut;
+			auto page = model->textures[face->texid].page;
 			
-			if (_istriangle) {
-				_ptr           = allocatePacket(_z, 7);
-				_ptr[0]        = _face->color | gp0_shadedTriangle(false, true, false);
-				gte_storeDataReg(GTE_SXY0, 1 * 4, _ptr);
-				_ptr[2]        = gp0_uv(_face->u[0], _face->v[0], _clut);
-				gte_storeDataReg(GTE_SXY1, 3 * 4, _ptr);
-				_ptr[4]        = gp0_uv(_face->u[1], _face->v[1], _page);
-				gte_storeDataReg(GTE_SXY2, 5 * 4, _ptr);
-				_ptr[6]        = gp0_uv(_face->u[2], _face->v[2], 0);
+			if (istriangle) {
+				ptr           = allocatePacket(z, 7);
+				ptr[0]        = face->color | gp0_shadedTriangle(false, true, false);
+				gte_storeDataReg(GTE_SXY0, 1 * 4, ptr);
+				ptr[2]        = gp0_uv(face->u[0], face->v[0], clut);
+				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
+				ptr[4]        = gp0_uv(face->u[1], face->v[1], page);
+				gte_storeDataReg(GTE_SXY2, 5 * 4, ptr);
+				ptr[6]        = gp0_uv(face->u[2], face->v[2], 0);
 			}
 			else { //quad
-	    		_ptr       = allocatePacket(_z, 9);
-				_ptr[0]    = _face->color | gp0_shadedQuad(false, true, false);
-				_ptr[1]    = _xy0;
-				_ptr[2]    = gp0_uv(_face->u[0], _face->v[0], _clut);
-				gte_storeDataReg(GTE_SXY0, 3 * 4, _ptr);
-				_ptr[4]    = gp0_uv(_face->u[1], _face->v[1], _page);
-				gte_storeDataReg(GTE_SXY1, 5 * 4, _ptr);
-				_ptr[6]    = gp0_uv(_face->u[2], _face->v[2], 0);
-				gte_storeDataReg(GTE_SXY2, 7 * 4, _ptr);
-				_ptr[8]    = gp0_uv(_face->u[3], _face->v[3], 0);
+	    		ptr       = allocatePacket(z, 9);
+				ptr[0]    = face->color | gp0_shadedQuad(false, true, false);
+				ptr[1]    = xy0;
+				ptr[2]    = gp0_uv(face->u[0], face->v[0], clut);
+				gte_storeDataReg(GTE_SXY0, 3 * 4, ptr);
+				ptr[4]    = gp0_uv(face->u[1], face->v[1], page);
+				gte_storeDataReg(GTE_SXY1, 5 * 4, ptr);
+				ptr[6]    = gp0_uv(face->u[2], face->v[2], 0);
+				gte_storeDataReg(GTE_SXY2, 7 * 4, ptr);
+				ptr[8]    = gp0_uv(face->u[3], face->v[3], 0);
 			}	
 
-			if (_lasttexid != _face->texid) {
-	    		_ptr       = allocatePacket(_z, 1);
-				_ptr[0]    = gp0_texpage(_page, false, false); // set texture page and CLUT		
-				_lasttexid = _face->texid;
+			if (lasttexid != face->texid) {
+	    		ptr       = allocatePacket(z, 1);
+				ptr[0]    = gp0_texpage(page, false, false); // set texture page and CLUT		
+				lasttexid = face->texid;
 			}
 		}
 		else  { //untextured
-			if (_istriangle) {
-				_ptr    = allocatePacket(_z,6);
-				_ptr[0] = _face->color | gp0_shadedTriangle(true, false, false);
-				gte_storeDataReg(GTE_SXY0, 1 * 4, _ptr);
-				_ptr[2] = _face->color;
-				gte_storeDataReg(GTE_SXY1, 3 * 4, _ptr);
-				_ptr[4] = _face->color;
-				gte_storeDataReg(GTE_SXY2, 5 * 4, _ptr);
+			if (istriangle) {
+				ptr    = allocatePacket(z,6);
+				ptr[0] = face->color | gp0_shadedTriangle(true, false, false);
+				gte_storeDataReg(GTE_SXY0, 1 * 4, ptr);
+				ptr[2] = face->color;
+				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
+				ptr[4] = face->color;
+				gte_storeDataReg(GTE_SXY2, 5 * 4, ptr);
 			}
 			else { //quad
-	    		_ptr    = allocatePacket(_z, 5);
-				_ptr[0] = _face->color | gp0_shadedQuad(false, false, false);
-				_ptr[1] = _xy0;
-				gte_storeDataReg(GTE_SXY0, 2 * 4, _ptr);
-				gte_storeDataReg(GTE_SXY1, 3 * 4, _ptr);
-				gte_storeDataReg(GTE_SXY2, 4 * 4, _ptr);
+	    		ptr    = allocatePacket(z, 5);
+				ptr[0] = face->color | gp0_shadedQuad(false, false, false);
+				ptr[1] = xy0;
+				gte_storeDataReg(GTE_SXY0, 2 * 4, ptr);
+				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
+				gte_storeDataReg(GTE_SXY2, 4 * 4, ptr);
 			}
 		}
 	}
 }
 
 uint32_t *Renderer::allocatePacket(int z, int numcommands) {
-    auto _chain = getCurrentChain();
-    auto _ptr   = _chain->nextpacket;
+    auto chain = getCurrentChain();
+    auto ptr   = chain->nextpacket;
 
     // check z index is valid
     assert((z >= 0) && (z < ORDERING_TABLE_SIZE));
 
     // link new packet into ordering table at specified z index
-    *_ptr = gp0_tag(numcommands, (void *) _chain->orderingtable[z]);
-    _chain->orderingtable[z] = gp0_tag(0, _ptr);
+    *ptr = gp0_tag(numcommands, (void *) chain->orderingtable[z]);
+    chain->orderingtable[z] = gp0_tag(0, ptr);
 
     // bump up allocator and check we haven't run out of space
-    _chain->nextpacket += numcommands + 1;
-    assert(_chain->nextpacket < &(_chain->data)[CHAIN_BUFFER_SIZE]);
+    chain->nextpacket += numcommands + 1;
+    assert(chain->nextpacket < &(chain->data)[CHAIN_BUFFER_SIZE]);
 
-    return &_ptr[1];
+    return &ptr[1];
 }
 
 void Renderer::printString(XY<int32_t> pos, int z, const char *str) {
 	assert(fontmap);
-	int _curx = pos.x, _cury = pos.y;
+	int curx = pos.x, cury = pos.y;
 
-	uint32_t *_ptr;
-	int _tabwidth = fontmap->header->tabwidth;
+	uint32_t *ptr;
+	int tabwidth = fontmap->header->tabwidth;
 
 	for (; *str; str++) {
-		char _c = *str;
+		char c = *str;
 
 		// Check if the character is "special"
-		switch (_c) {
+		switch (c) {
 			case '\t':
-				_curx += _tabwidth - 1;
-				_curx -= _curx % _tabwidth;
+				curx += tabwidth - 1;
+				curx -= curx % tabwidth;
 				continue;
 
 			case '\n':
-				_curx  = pos.x;
-				_cury += fontmap->header->lineheight;
+				curx  = pos.x;
+				cury += fontmap->header->lineheight;
 				continue;
 
 			case ' ':
-				_curx += fontmap->header->spacewidth;
+				curx += fontmap->header->spacewidth;
 				continue;
 
 			case '\x80' ... '\xff':
-				_c = '\x7f';
+				c = '\x7f';
 				break;
 		}
 
-		const RECT<uint8_t> &_rect = fontmap->rects[_c - fontmap->header->firstchar];
+		const RECT<uint8_t> &rect = fontmap->rects[c - fontmap->header->firstchar];
 		
 		// Enable blending to make sure any semitransparent pixels in the font get rendered correctly.
-		_ptr    = allocatePacket(z, 4);
-		_ptr[0] = gp0_rectangle(true, true, true);
-		_ptr[1] = gp0_xy(_curx, _cury);
-		_ptr[2] = gp0_uv(fonttex.u + _rect.x, fonttex.v + _rect.y, fonttex.clut);
-		_ptr[3] = gp0_xy(_rect.w, _rect.h);
+		ptr    = allocatePacket(z, 4);
+		ptr[0] = gp0_rectangle(true, true, true);
+		ptr[1] = gp0_xy(curx, cury);
+		ptr[2] = gp0_uv(fonttex.u + rect.x, fonttex.v + rect.y, fonttex.clut);
+		ptr[3] = gp0_xy(rect.w, rect.h);
 
-		_curx += _rect.w;
+		curx += rect.w;
 	}
 	
-	_ptr    = allocatePacket(z, 1);
-	_ptr[0] = gp0_texpage(fonttex.page, false, false);
+	ptr    = allocatePacket(z, 1);
+	ptr[0] = gp0_texpage(fonttex.page, false, false);
 }
 
 void Renderer::printStringf(XY<int32_t> pos, int z, const char *fmt, ...) {
-    char buf[256];  // Adjust size as needed
+    char buf[256];
     va_list args;
     va_start(args, fmt);
     vsnprintf(buf, sizeof(buf), fmt, args);
@@ -325,57 +338,58 @@ void Renderer::printStringf(XY<int32_t> pos, int z, const char *fmt, ...) {
 
 //indexed
 void uploadTexture(TextureInfo &info, const void *image) {
-    const TexHeader* _header = reinterpret_cast<const TexHeader*>(image);
-	assert(_header->isValid());
-	info = _header->texinfo;
+    const TexHeader* header = reinterpret_cast<const TexHeader*>(image);
+	assert(header->isValid());
+	info = header->texinfo;
 
 	assert((info.w <= 256) && (info.h <= 256));
 
-	int _ncolors = (info.bpp == 8) ? 256 : 16;
-	int _widthdivider = (info.bpp == 8) ? 2 : 4;
+	int ncolors = (info.bpp == 8) ? 256 : 16;
+	int widthdivider = (info.bpp == 8) ? 2 : 4;
 	
-	sendVRAMData(_header->texdata(), {_header->vrampos[0], _header->vrampos[1], info.w / _widthdivider, info.h});
+	sendVRAMData(header->texdata(), {header->vrampos[0], header->vrampos[1], info.w / widthdivider, info.h});
 	waitForDMADone();
-	sendVRAMData(_header->clut(), {_header->clutpos[0], _header->clutpos[1], _ncolors, 1});
+	sendVRAMData(header->clut(), {header->clutpos[0], header->clutpos[1], ncolors, 1});
 	waitForDMADone();
 }
 
-const ModelFile* loadModel(const uint8_t* data) {
-    auto _model = new ModelFile(); 
-    _model->header = reinterpret_cast<const ModelFileHeader*>(data);
-	assert(_model->header->isValid());
+//todo add freeing functions for models and fonts
+const Model* loadModel(const uint8_t* data) {
+    auto model = new Model(); 
+    model->header = reinterpret_cast<const ModelFileHeader*>(data);
+	assert(model->header->isValid());
 
-    _model->vertices = _model->header->vertices();
-    _model->faces = _model->header->faces();
+    model->vertices = model->header->vertices();
+    model->faces = model->header->faces();
 
 	//textures
-	auto _texptr = _model->header->textures();
+	auto texptr = model->header->textures();
 	
-	int _ntex = static_cast<int>(_model->header->numtex);
+	int ntex = static_cast<int>(model->header->numtex);
 
-    if (_ntex > 0) {
-		_model->textures = new TextureInfo[_ntex];
+    if (ntex > 0) {
+		model->textures = new TextureInfo[ntex];
 
-		for (int i = 0; i < static_cast<int>(_model->header->numtex); i++) {
-			const TexHeader* tex_header = reinterpret_cast<const TexHeader*>(_texptr);
-			uploadTexture(_model->textures[i], _texptr);
+		for (int i = 0; i < static_cast<int>(model->header->numtex); i++) {
+			const TexHeader* tex_header = reinterpret_cast<const TexHeader*>(texptr);
+			uploadTexture(model->textures[i], texptr);
 			
-			size_t _clutbytes = tex_header->clutsize;
-			size_t _texbytes = tex_header->texsize;
+			size_t clutbytes = tex_header->clutsize;
+			size_t texbytes = tex_header->texsize;
 
-			_texptr += sizeof(TexHeader) + _clutbytes + _texbytes;
+			texptr += sizeof(TexHeader) + clutbytes + texbytes;
 		}
 	}
-    return _model;
+    return model;
 }
-
+//todo proper font manager for multiple fonts
 FontData *loadFontMap(const uint8_t *data) {
-    auto _fntdata = new FontData();
-    _fntdata->header = reinterpret_cast<const FontHeader*>(data);
-	assert(_fntdata->header->isValid());
-    _fntdata->rects = _fntdata->header->rects();
+    auto fntdata = new FontData();
+    fntdata->header = reinterpret_cast<const FontHeader*>(data);
+	assert(fntdata->header->isValid());
+    fntdata->rects = fntdata->header->rects();
 
-	return _fntdata;
+	return fntdata;
 }
 
 static void waitForGP0Ready(void) {
@@ -410,17 +424,17 @@ static void sendVRAMData(const void *data, RECT<int32_t> rect) {
 	waitForDMADone();
 	assert(!((uint32_t) data % 4));
 
-	size_t _length = (rect.w * rect.h) / 2;
-	size_t _chunksize, _numchunks;
+	size_t length = (rect.w * rect.h) / 2;
+	size_t chunksize, numchunks;
 
-	if (_length < DMA_MAX_CHUNK_SIZE) {
-		_chunksize = _length;
-		_numchunks = 1;
+	if (length < DMA_MAX_CHUNK_SIZE) {
+		chunksize = length;
+		numchunks = 1;
 	} else {
-		_chunksize = DMA_MAX_CHUNK_SIZE;
-		_numchunks = _length / DMA_MAX_CHUNK_SIZE;
+		chunksize = DMA_MAX_CHUNK_SIZE;
+		numchunks = length / DMA_MAX_CHUNK_SIZE;
 
-		assert(!(_length % DMA_MAX_CHUNK_SIZE));
+		assert(!(length % DMA_MAX_CHUNK_SIZE));
 	}
 
 	waitForGP0Ready();
@@ -429,7 +443,7 @@ static void sendVRAMData(const void *data, RECT<int32_t> rect) {
 	GPU_GP0 = gp0_xy(rect.w, rect.h);
 
 	DMA_MADR(DMA_GPU) = (uint32_t) data;
-	DMA_BCR (DMA_GPU) = _chunksize | (_numchunks << 16);
+	DMA_BCR (DMA_GPU) = chunksize | (numchunks << 16);
 	DMA_CHCR(DMA_GPU) = 0
 		| DMA_CHCR_WRITE
 		| DMA_CHCR_MODE_SLICE
