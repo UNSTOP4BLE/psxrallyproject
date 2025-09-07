@@ -10,6 +10,7 @@ App g_app;
 
 int main(int argc, const char **argv) {
 	initSerialIO(115200);
+	g_app.fileprovider.init();
 	
 	GP1VideoMode mode;
 	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
@@ -22,8 +23,18 @@ int main(int argc, const char **argv) {
 	g_app.renderer.init(mode);
 	
 	GTE::setupGTE();
-//	GFX::uploadTexture(g_app.renderer.fonttex, fdata);
-//	g_app.renderer.fontmap = GFX::loadFontMap(fdata);
+
+//	ENGINE::FS::File* file = g_app.fileprovider.openFile("font.xtex");
+//	auto buf = ENGINE::FS::readFullFile(file);
+//	GFX::uploadTexture(g_app.renderer.fonttex, buf);
+//	free(buf);
+//	file->close();
+
+//	file = g_app.fileprovider.openFile("font.xfnt");
+//	buf = ENGINE::FS::readFullFile(file);
+//	g_app.renderer.fontmap = GFX::loadFontMap(buf);
+//	free(buf);
+//	file->close();
 
 	ENGINE::SCENE::set(new TestSCN());
 
@@ -35,7 +46,7 @@ int main(int argc, const char **argv) {
         g_app.curscene->update();  
         g_app.curscene->draw();  
 
-		g_app.renderer.printStringf({5, 5}, 0, "Heap usage: %zu/%zu bytes", getHeapUsage(), _heapLimit-_heapEnd);
+//		g_app.renderer.printStringf({5, 5}, 0, "Heap usage: %zu/%zu bytes", getHeapUsage(), _heapLimit-_heapEnd);
 		g_app.renderer.endFrame();
 	}
 	return 0;

@@ -13,6 +13,7 @@ public:
         //Object3D todo deconstructor
 private:
     const GFX::Model *model;
+    GTEVector32 pos, rot;
 };
 
 //todo

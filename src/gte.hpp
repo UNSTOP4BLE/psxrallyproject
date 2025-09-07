@@ -7,7 +7,8 @@
 // fixed unit, in this case 4096 or 1 << 12 (hence making the fractional part 12
 // bits long). We'll define this unit value to make their handling easier.
 namespace GTE {
-#define ONE (1 << 12)
+
+constexpr uint16_t ONE = (1 << 12);
 
 void setupGTE(void);
 void multiplyCurrentMatrixByVectors(GTEMatrix *output);

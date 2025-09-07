@@ -18,9 +18,9 @@ void setupGTE(void) {
 
 	// Set the distance of the perspective projection plane (i.e. the camera's
 	// focal length), which affects the field of view.
-	int _focallen = (GFX::SCREEN_WIDTH < GFX::SCREEN_HEIGHT) ? GFX::SCREEN_WIDTH : GFX::SCREEN_HEIGHT;
+	int focallen = (GFX::SCREEN_WIDTH < GFX::SCREEN_HEIGHT) ? GFX::SCREEN_WIDTH : GFX::SCREEN_HEIGHT;
 
-	gte_setControlReg(GTE_H, _focallen / 2);
+	gte_setControlReg(GTE_H, focallen / 2);
 
 	// Set the scaling factor for Z averaging. For each polygon drawn, the GTE
 	// will sum the transformed Z coordinates of its vertices multiplied by this
@@ -58,47 +58,48 @@ void multiplyCurrentMatrixByVectors(GTEMatrix *output) {
 }
 
 void rotateCurrentMatrix(int yaw, int pitch, int roll) {
-	static GTEMatrix _multiplied;
-	int _s, _c;
+	static GTEMatrix multiplied;
+	int s, c;
 
 	// For each axis, compute the rotation matrix then "combine" it with the
 	// GTE's current matrix by multiplying the two and writing the result back
 	// to the GTE's registers.
+
 	if (yaw) {
-		_s = TRIG::isin(yaw);
-		_c = TRIG::icos(yaw);
+		s = TRIG::isin(yaw);
+		c = TRIG::icos(yaw);
 
 		gte_setColumnVectors(
-			_c, -_s,   0,
-			_s,  _c,   0,
-			 0,   0, ONE
+			c, -s,   0,
+			s,  c,   0,
+			0,  0, ONE
 		);
-		multiplyCurrentMatrixByVectors(&_multiplied);
-		gte_loadRotationMatrix(&_multiplied);
+		multiplyCurrentMatrixByVectors(&multiplied);
+		gte_loadRotationMatrix(&multiplied);
 	}
 	if (pitch) {
-		_s = TRIG::isin(pitch);
-		_c = TRIG::icos(pitch);
+		s = TRIG::isin(pitch);
+		c = TRIG::icos(pitch);
 
 		gte_setColumnVectors(
-			 _c,   0, _s,
-			  0, ONE,  0,
-			-_s,   0, _c
+			 c,   0, s,
+			 0, ONE, 0,
+			-s,   0, c
 		);
-		multiplyCurrentMatrixByVectors(&_multiplied);
-		gte_loadRotationMatrix(&_multiplied);
+		multiplyCurrentMatrixByVectors(&multiplied);
+		gte_loadRotationMatrix(&multiplied);
 	}
 	if (roll) {
-		_s = TRIG::isin(roll);
-		_c = TRIG::icos(roll);
+		s = TRIG::isin(roll);
+		c = TRIG::icos(roll);
 
 		gte_setColumnVectors(
-			ONE,  0,   0,
-			  0, _c, -_s,
-			  0, _s,  _c
+			ONE, 0,  0,
+			  0, c, -s,
+			  0, s,  c
 		);
-		multiplyCurrentMatrixByVectors(&_multiplied);
-		gte_loadRotationMatrix(&_multiplied);
+		multiplyCurrentMatrixByVectors(&multiplied);
+		gte_loadRotationMatrix(&multiplied);
 	}
 }
 }

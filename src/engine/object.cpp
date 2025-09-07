@@ -1,4 +1,5 @@
 #include "object.hpp"
+#include "../app.hpp"
 
 extern const uint8_t g_mymodel[];
 
@@ -6,7 +7,9 @@ namespace ENGINE {
 
 void Object3D::init(const char *modelpath) {
     //todo read from cd
-    GFX::loadModel(g_mymodel); 
+    model = GFX::loadModel(g_mymodel); 
+    pos = {0, 0, 0};
+    rot = {0, 0, 0};
 }
 
 void Object3D::update(void) {
@@ -14,8 +17,7 @@ void Object3D::update(void) {
 }
 
 void Object3D::render(void) {
-    //todo read from cd
-    GFX::loadModel(g_mymodel); 
+    g_app.renderer.drawModel(model, pos, rot);
 }
 
 

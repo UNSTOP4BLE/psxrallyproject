@@ -149,10 +149,11 @@ void Renderer::drawModel(const Model *model, GTEVector32 pos, GTEVector32 rot) {
 	gte_setControlReg(GTE_TRX, pos.x);
 	gte_setControlReg(GTE_TRY, pos.y);
 	gte_setControlReg(GTE_TRZ, pos.z);
+	uint32_t one = GTE::ONE;
 	gte_setRotationMatrix(
-		ONE,   0,   0,
-		  0, ONE,   0,
-		  0,   0, ONE
+		one,    0,   0,
+		  0, -one,   0,
+		  0,    0, one
 	);
 
 	GTE::rotateCurrentMatrix(rot.x, rot.y, rot.z);

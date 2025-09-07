@@ -32,6 +32,7 @@ add_library(
 	src/commonlib/libc/string.c
 	src/commonlib/libc/string.s
 	src/commonlib/ps1/cache.s
+	src/commonlib/ps1/pcdrv.s
 	src/commonlib/vendor/printf.c
 )
 target_include_directories(
