@@ -10,9 +10,7 @@ File::~File(void) {
 size_t Provider::loadData(void *output, size_t length, const char *path) {
 	auto file = openFile(path);
 
-	if (!file)
-		return 0;
-
+    assert(file);
 	assert(file->size >= length);
 
 	size_t actuallen = file->read(output, length);
