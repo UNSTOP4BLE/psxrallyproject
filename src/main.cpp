@@ -6,7 +6,6 @@
 
 #include "scenes/test.hpp"
 
-#include "cdrom.hpp"
 App g_app;
 
 int main(int argc, const char **argv) {
