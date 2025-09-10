@@ -154,7 +154,8 @@ private:
 };
 
 void uploadTexture(TextureInfo &info, const void *image);
-const Model *loadModel(const uint8_t *data);
+Model *loadModel(const uint8_t *data);
+void freeModel(Model *model);
 FontData *loadFontMap(const uint8_t *data);
 
 }

@@ -2,12 +2,14 @@
 
 int testx = 0;
 TestSCN::TestSCN(void) {
-    car.init("blablatest");
+    //todo improve file loading so i dont need to allocate a ton of crap
+    car.init("impreza.xmdl");
 }
 
 void TestSCN::update(void) {
     testx += 10;
     car.setRot({0, testx, 45});
+    car.update();
 }
 
 void TestSCN::draw(void) {
@@ -15,5 +17,5 @@ void TestSCN::draw(void) {
 }
 
 TestSCN::~TestSCN(void) {
-
+    car.free();
 }

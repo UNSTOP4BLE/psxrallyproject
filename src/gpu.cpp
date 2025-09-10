@@ -144,7 +144,6 @@ void Renderer::drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uin
     ptr[9]    = gp0_uv(tex.u+tex.w, tex.v+tex.h, 0);
 }
 
-//to clean up
 void Renderer::drawModel(const Model *model, GTEVector32 pos, GTEVector32 rot) {
 	gte_setControlReg(GTE_TRX, pos.x);
 	gte_setControlReg(GTE_TRY, pos.y);
@@ -208,7 +207,6 @@ void Renderer::drawModel(const Model *model, GTEVector32 pos, GTEVector32 rot) {
 			continue;
 
 		uint32_t *ptr;
-		//todo set texture only once
 		if (face->texid >= 0) { //textured
 			auto clut = model->textures[face->texid].clut;
 			auto page = model->textures[face->texid].page;
@@ -354,8 +352,8 @@ void uploadTexture(TextureInfo &info, const void *image) {
 	waitForDMADone();
 }
 
-//todo add freeing functions for models and fonts
-const Model* loadModel(const uint8_t* data) {
+//todo add freeing functions for font
+Model* loadModel(const uint8_t* data) {
     auto model = new Model(); 
     model->header = reinterpret_cast<const ModelFileHeader*>(data);
 	assert(model->header->isValid());
@@ -383,6 +381,17 @@ const Model* loadModel(const uint8_t* data) {
 	}
     return model;
 }
+
+void freeModel(Model *model) {
+    // free textures array if allocated
+    if (model->textures) {
+        delete[] model->textures;
+    }
+
+    // free the model itself
+    delete model;
+}
+
 //todo proper font manager for multiple fonts
 FontData *loadFontMap(const uint8_t *data) {
     auto fntdata = new FontData();

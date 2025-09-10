@@ -1,13 +1,11 @@
 #include "object.hpp"
 #include "../app.hpp"
 
-extern const uint8_t g_mymodel[];
-
 namespace ENGINE {
 
 void Object3D::init(const char *modelpath) {
-    //todo read from cd
-    model = GFX::loadModel(g_mymodel); 
+	file = g_app.fileprovider.openFile(modelpath);
+    model = GFX::loadModel(file->fdata); 
     pos = {0, 0, 0};
     rot = {0, 0, 0};
 }
@@ -26,6 +24,11 @@ void Object3D::update(void) {
 
 void Object3D::render(void) {
     g_app.renderer.drawModel(model, pos, rot);
+}
+
+void Object3D::free(void) {
+    file->close();
+    freeModel(model);
 }
 
 

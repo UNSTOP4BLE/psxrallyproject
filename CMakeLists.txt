@@ -57,24 +57,17 @@ convertImage(
     assets/font.xtex
     assets/font.vram
 )
-addBinaryFile(PSXRallyProject g_myfonttex "${PROJECT_BINARY_DIR}/assets/font.xtex")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
-
 convertImage(
     assets/impreza.png
     assets/impreza.xtex
     assets/impreza.vram
 )
-addBinaryFile(PSXRallyProject g_mytex "${PROJECT_BINARY_DIR}/assets/impreza.xtex")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
-
 convertModel(
 	assets/impreza.obj #in 
 	assets/impreza.xmdl #out 
 	assets/ #texture directory
 )
-addBinaryFile(PSXRallyProject g_mymodel "${PROJECT_BINARY_DIR}/assets/impreza.xmdl")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")
-
 convertFont(
 	assets/font.json #in 
 	assets/font.xfnt #out 
 )
-addBinaryFile(PSXRallyProject g_myfontmap "${PROJECT_BINARY_DIR}/assets/font.xfnt")#"${PROJECT_BINARY_DIR}/assets/textureData.dat")

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../gpu.hpp"
+#include "fs/file.hpp"
 
 namespace ENGINE {
 
@@ -12,9 +13,11 @@ public:
     void setRot(const GTEVector32& r);
     void update(void);
     void render(void);
-        //Object3D todo deconstructor
+    
+    void free(void);
 private:
-    const GFX::Model *model;
+    GFX::Model *model;
+    ENGINE::FS::File* file;
     GTEVector32 pos, rot;
 };
 
