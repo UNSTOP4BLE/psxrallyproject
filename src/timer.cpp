@@ -12,7 +12,7 @@ void init(void) {
     g_t2irqcount = 0;
 }
 
-uint64_t T2val(void) {
+uint64_t T2_val(void) {
 //    atomic_signal_fence(memory_order_acquire);
     return uint64_t(TIMER_VALUE(2) & 0xffff) | (uint64_t(g_t2irqcount) << 16);
 }
@@ -22,6 +22,6 @@ uint64_t T2_ms(void) {
     constexpr int tdiv  = 21168;
     static_assert(((TIMER2_FREQ * tmult) / tdiv) == 1000);
 
-    return (T2val() * uint64_t(tmult)) / uint64_t(tdiv);
+    return (T2_val() * uint64_t(tmult)) / uint64_t(tdiv);
 }
 }

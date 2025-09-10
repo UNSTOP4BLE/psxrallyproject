@@ -8,6 +8,7 @@ namespace ENGINE::FS {
 class File {
 public:
 	uint32_t size;
+	uint8_t* fdata;
 
 	virtual size_t read(void *output, size_t length) { return 0; }
 	virtual uint32_t seek(uint32_t offset) { return 0; }

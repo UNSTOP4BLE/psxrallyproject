@@ -24,6 +24,7 @@ uint32_t HostFile::tell(void) const {
 }
 
 void HostFile::close(void) {
+	delete[] fdata;
 	pcdrvClose(m_fd);
 }
 
@@ -37,7 +38,6 @@ bool HostProvider::init(void) {
 
 File *HostProvider::openFile(const char *path) {
 	PCDRVOpenMode mode = PCDRV_MODE_READ;
-
 	int fd = pcdrvOpen(path, mode);
 
     assert(fd >= 0);
@@ -47,6 +47,13 @@ File *HostProvider::openFile(const char *path) {
 	file->size = pcdrvSeek(fd, 0, PCDRV_SEEK_END);
 
 	pcdrvSeek(fd, 0, PCDRV_SEEK_SET);
+
+	file->fdata = new uint8_t[file->size];
+	file->read(file->fdata, file->size);
+
+	pcdrvSeek(fd, 0, PCDRV_SEEK_SET);
+
+	
 	return file;
 }
 

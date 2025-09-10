@@ -12,6 +12,14 @@ void Object3D::init(const char *modelpath) {
     rot = {0, 0, 0};
 }
 
+void Object3D::setPos(const GTEVector32& p) {
+    pos = p;
+}
+
+void Object3D::setRot(const GTEVector32& r) {
+    rot = r;
+}
+
 void Object3D::update(void) {
     //todo physics
 }

@@ -8,6 +8,8 @@ class Object3D {
 public:
     void init(const char *modelpath);
 
+    void setPos(const GTEVector32& p);
+    void setRot(const GTEVector32& r);
     void update(void);
     void render(void);
         //Object3D todo deconstructor

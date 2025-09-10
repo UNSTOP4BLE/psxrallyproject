@@ -152,7 +152,7 @@ void Renderer::drawModel(const Model *model, GTEVector32 pos, GTEVector32 rot) {
 	uint32_t one = GTE::ONE;
 	gte_setRotationMatrix(
 		one,    0,   0,
-		  0, -one,   0,
+		  0,  one,   0,
 		  0,    0, one
 	);
 
@@ -178,6 +178,8 @@ void Renderer::drawModel(const Model *model, GTEVector32 pos, GTEVector32 rot) {
 		// Determine the winding order of the vertices on screen. If they
 		// are ordered clockwise then the face is visible, otherwise it can
 		// be skipped as it is not facing the camera.
+		
+		// todo fix converter to wind verts properly 
 		gte_command(GTE_CMD_NCLIP);
 
 		if (gte_getDataReg(GTE_MAC0) <= 0)
@@ -242,13 +244,11 @@ void Renderer::drawModel(const Model *model, GTEVector32 pos, GTEVector32 rot) {
 		}
 		else  { //untextured
 			if (istriangle) {
-				ptr    = allocatePacket(z,6);
-				ptr[0] = face->color | gp0_shadedTriangle(true, false, false);
+				ptr    = allocatePacket(z,4);
+				ptr[0] = face->color | gp0_shadedTriangle(false, false, false);
 				gte_storeDataReg(GTE_SXY0, 1 * 4, ptr);
-				ptr[2] = face->color;
-				gte_storeDataReg(GTE_SXY1, 3 * 4, ptr);
-				ptr[4] = face->color;
-				gte_storeDataReg(GTE_SXY2, 5 * 4, ptr);
+				gte_storeDataReg(GTE_SXY1, 2 * 4, ptr);
+				gte_storeDataReg(GTE_SXY2, 3 * 4, ptr);
 			}
 			else { //quad
 	    		ptr    = allocatePacket(z, 5);

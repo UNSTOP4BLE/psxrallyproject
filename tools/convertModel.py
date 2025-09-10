@@ -225,6 +225,8 @@ if (__name__ == '__main__'):
     #write textures
     if (header.numtex > 0): #check if any textures exist
         for mat in materials:
+            if (mat.texid < 0):
+                continue
             #read converted texture
             texpath = mat.texture
             texname = os.path.splitext(os.path.basename(texpath))[0] + ".xtex"  #just the file name with .xtex

@@ -24,16 +24,12 @@ int main(int argc, const char **argv) {
 	
 	GTE::setupGTE();
 
-//	ENGINE::FS::File* file = g_app.fileprovider.openFile("font.xtex");
-//	auto buf = ENGINE::FS::readFullFile(file);
-//	GFX::uploadTexture(g_app.renderer.fonttex, buf);
-//	free(buf);
-//	file->close();
+	ENGINE::FS::File* file = g_app.fileprovider.openFile("font.xtex");
+	GFX::uploadTexture(g_app.renderer.fonttex, file->fdata);
+	file->close();
 
-//	file = g_app.fileprovider.openFile("font.xfnt");
-//	buf = ENGINE::FS::readFullFile(file);
-//	g_app.renderer.fontmap = GFX::loadFontMap(buf);
-//	free(buf);
+	file = g_app.fileprovider.openFile("font.xfnt");
+	g_app.renderer.fontmap = GFX::loadFontMap(file->fdata);
 //	file->close();
 
 	ENGINE::SCENE::set(new TestSCN());
@@ -46,7 +42,7 @@ int main(int argc, const char **argv) {
         g_app.curscene->update();  
         g_app.curscene->draw();  
 
-//		g_app.renderer.printStringf({5, 5}, 0, "Heap usage: %zu/%zu bytes", getHeapUsage(), _heapLimit-_heapEnd);
+		g_app.renderer.printStringf({5, 5}, 0, "Heap usage: %zu/%zu bytes", getHeapUsage(), _heapLimit-_heapEnd);
 		g_app.renderer.endFrame();
 	}
 	return 0;
