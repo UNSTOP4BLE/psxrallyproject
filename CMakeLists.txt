@@ -52,22 +52,99 @@ list(FILTER SRC_FILES EXCLUDE REGEX ".*/commonlib/.*")
 
 addPS1Executable(PSXRallyProject ${SRC_FILES})
 
-convertImage(
-    assets/font.png
-    assets/font.xtex
-    assets/font.vram
+#build images
+file(GLOB_RECURSE _images
+    RELATIVE ${PROJECT_SOURCE_DIR}
+    assets/*.png
 )
-convertImage(
-    assets/impreza.png
-    assets/impreza.xtex
-    assets/impreza.vram
+list(FILTER _images EXCLUDE REGEX ".*/sourcefiles/.*")
+
+foreach(_in ${_images})
+    get_filename_component(_basename ${_in} NAME_WE)
+    get_filename_component(_path ${_in} PATH)
+
+    set(_out_dir ${_path})
+    file(MAKE_DIRECTORY ${_out_dir})
+    set(_out_xtex ${_out_dir}/${_basename}.xtex)
+    set(_in_vram ${_path}/${_basename}.vram)
+
+    convertImage(
+        ${_in}      
+        ${_out_xtex} 
+        ${_in_vram}   
+    )
+
+    list(APPEND _built_images ${_out_xtex})
+endforeach()
+
+add_custom_target(Images ALL
+    DEPENDS ${_built_images}
 )
-convertModel(
-	assets/impreza.obj #in 
-	assets/impreza.xmdl #out 
-	assets/ #texture directory
+
+#build models
+file(GLOB_RECURSE _models
+    RELATIVE ${PROJECT_SOURCE_DIR}
+    assets/*.obj
 )
-convertFont(
-	assets/font.json #in 
-	assets/font.xfnt #out 
+list(FILTER _models EXCLUDE REGEX ".*/sourcefiles/.*")
+
+foreach(_in ${_models})
+    get_filename_component(_basename ${_in} NAME_WE)
+    get_filename_component(_path ${_in} PATH)
+
+    set(_out_dir ${_path})
+    file(MAKE_DIRECTORY ${_out_dir})
+    set(_out_xmdl ${_out_dir}/${_basename}.xmdl)
+    set(_tex_dir ${_path}/)
+
+	convertModel(
+        ${_in}      
+        ${_out_xmdl} 
+        ${_tex_dir}   
+	)
+
+    list(APPEND _built_models ${_out_xmdl})
+endforeach()
+
+add_custom_target(Models ALL
+    DEPENDS ${_built_models}
 )
+
+#build fonts
+file(GLOB_RECURSE _fonts
+    RELATIVE ${PROJECT_SOURCE_DIR}
+    assets/*.json
+)
+list(FILTER _fonts EXCLUDE REGEX ".*/sourcefiles/.*")
+
+foreach(_in ${_fonts})
+    get_filename_component(_basename ${_in} NAME_WE)
+    get_filename_component(_path ${_in} PATH)
+
+    set(_out_dir ${_path})
+    file(MAKE_DIRECTORY ${_out_dir})
+    set(_out_xfnt ${_out_dir}/${_basename}.xfnt)
+
+	convertFont(
+        ${_in}      
+        ${_out_xfnt} 
+	)
+
+    list(APPEND _built_fonts ${_out_xfnt})
+endforeach()
+
+add_custom_target(Fonts ALL
+    DEPENDS ${_built_fonts}
+)
+
+
+add_custom_target(Assets ALL)
+#textures
+add_dependencies(Assets Images)
+#models
+add_dependencies(Models Images) #model depends on images
+add_dependencies(Assets Models)
+#fonts
+add_dependencies(Assets Fonts)
+
+add_dependencies(PSXRallyProject Assets)

@@ -9,31 +9,8 @@ from argparse import ArgumentParser, FileType, Namespace
 import numpy
 from numpy import ndarray
 from PIL   import Image
-import ctypes 
 from enum import IntEnum
-
-class TextureInfo(ctypes.LittleEndianStructure):
-    _pack_ = 1 
-    _fields_ = [
-        ("u", ctypes.c_uint8),
-        ("v", ctypes.c_uint8),
-        ("w", ctypes.c_uint16),
-        ("h", ctypes.c_uint16),
-        ("page", ctypes.c_uint16),
-        ("clut", ctypes.c_uint16),
-        ("bpp", ctypes.c_uint16)
-    ]
-
-class TexHeader(ctypes.LittleEndianStructure):
-    _pack_ = 1 
-    _fields_ = [
-        ("magic", ctypes.c_uint32),
-        ("texinfo", TextureInfo),
-        ("vrampos", ctypes.c_uint16*2), 
-        ("clutpos", ctypes.c_uint16*2), 
-        ("clutsize", ctypes.c_uint16), 
-        ("texsize", ctypes.c_uint16) 
-    ]
+from common import TexHeader, TextureInfo
 
 class GP0BlendMode(IntEnum):
     GP0_BLEND_SEMITRANS = 0
@@ -97,8 +74,8 @@ def quantizeImage(imageObj: Image.Image, numColors: int) -> Image.Image:
 		imageObj.height,
 		imageObj.width
 	))
-	newObj: Image.Image = Image.fromarray(image, "P")
-
+	newObj: Image.Image = Image.fromarray(image)
+	newObj = newObj.convert("P")
 	newObj.putpalette(clut.tobytes(), imageObj.mode)
 	return newObj
 

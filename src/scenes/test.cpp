@@ -3,7 +3,7 @@
 int testx = 0;
 TestSCN::TestSCN(void) {
     //todo improve file loading so i dont need to allocate a ton of crap
-    car.init("impreza.xmdl");
+    car.init("cars/impreza555/impreza555.xmdl");
 }
 
 void TestSCN::update(void) {

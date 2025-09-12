@@ -1,32 +1,7 @@
 import ctypes 
 import json
 import sys
-
-class RECT8(ctypes.LittleEndianStructure):
-    _pack_ = 1 
-    _fields_ = [
-        ("x", ctypes.c_uint8),
-        ("y", ctypes.c_uint8),
-        ("w", ctypes.c_uint8), 
-        ("h", ctypes.c_uint8)
-    ]
-
-    def set(self, r):
-        self.x, self.y, self.w, self.h = r
-         
-
-class FontHeader(ctypes.LittleEndianStructure):
-    _pack_ = 1 
-    _fields_ = [
-        ("magic",      ctypes.c_uint32),
-        ("firstchar",  ctypes.c_uint8),
-        ("spacewidth", ctypes.c_uint8),
-        ("tabwidth",   ctypes.c_uint8), 
-        ("lineheight", ctypes.c_uint8),
-        ("numchars",   ctypes.c_uint8),
-        ("_padding",   ctypes.c_uint8 * 3)
-    ]
-
+from common import FontHeader, RECT8
 
 def main():     
     if (len(sys.argv) < 3):
