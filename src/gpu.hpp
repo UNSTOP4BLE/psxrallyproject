@@ -13,7 +13,7 @@ namespace GFX {
 
 #define DMA_MAX_CHUNK_SIZE    16
 #define CHAIN_BUFFER_SIZE   4104
-#define ORDERING_TABLE_SIZE  3072
+#define ORDERING_TABLE_SIZE  1024
 
 constexpr int SCREEN_WIDTH  = 320;
 constexpr int SCREEN_HEIGHT = 240;
