@@ -32,10 +32,6 @@ typedef struct __attribute__((aligned(4))) {
 } GTEVector16;
 
 typedef struct __attribute__((aligned(4))) {
-	int32_t x, y, z;
-} GTEVector32;
-
-typedef struct __attribute__((aligned(4))) {
 	int16_t values[3][3];
 	int16_t _padding;
 } GTEMatrix;

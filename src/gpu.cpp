@@ -145,10 +145,10 @@ void Renderer::drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uin
     ptr[9]    = gp0_uv(tex.u+tex.w, tex.v+tex.h, 0);
 }
 
-void Renderer::drawModel(const Model *model, GTEVector32 pos, GTEVector32 rot) {
-	gte_setControlReg(GTE_TRX, pos.x);
-	gte_setControlReg(GTE_TRY, pos.y);
-	gte_setControlReg(GTE_TRZ, pos.z);
+void Renderer::drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot) {
+	gte_setControlReg(GTE_TRX, pos.x.value);
+	gte_setControlReg(GTE_TRY, pos.y.value);
+	gte_setControlReg(GTE_TRZ, pos.z.value);
 	uint32_t one = GTE::ONE;
 	gte_setRotationMatrix(
 		one,    0,   0,
@@ -156,7 +156,7 @@ void Renderer::drawModel(const Model *model, GTEVector32 pos, GTEVector32 rot) {
 		  0,    0, one
 	);
 
-	GTE::rotateCurrentMatrix(rot.x, rot.y, rot.z);
+	GTE::rotateCurrentMatrix(rot.x.value, rot.y.value, rot.z.value);
 
 	int lasttexid = -1;
 

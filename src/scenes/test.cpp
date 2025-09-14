@@ -8,7 +8,7 @@ TestSCN::TestSCN(void) {
 
 void TestSCN::update(void) {
     testx += 10;
-    car.setRot({0, testx, 45});
+    car.rot = {0, testx, 45};
     car.update();
 }
 

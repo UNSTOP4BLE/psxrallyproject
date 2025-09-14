@@ -20,6 +20,7 @@ if(TARGET_PLATFORM STREQUAL "PC")
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_C_STANDARD 11)        
 else()
+    include(cmake/setup.cmake)
     # Build a "common" library and link it
     add_library(
         common OBJECT

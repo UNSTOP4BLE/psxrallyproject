@@ -1,7 +1,10 @@
 #pragma once
 
+#include "../fixed.hpp"
+#include "object.hpp"
+
 namespace ENGINE::PHYSICS {
-constexpr Fixed16 G = makeFixed<16>(98, 10);
-void actGravity3D();
+constexpr FIXED::Fixed12 G = FIXED::makeFixed<12>(98, 10);
+void actGravity3D(Object3D *obj);
 
 }

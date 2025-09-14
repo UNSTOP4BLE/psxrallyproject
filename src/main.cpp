@@ -28,7 +28,7 @@ int main(int argc, const char **argv) {
 	}
 	GTE::setupGTE();
 #endif
-//	g_app.renderer.init(mode);
+	g_app.renderer.init(mode);
 	
 
 	ENGINE::FS::File* file = g_app.fileprovider.openFile("font.xtex");

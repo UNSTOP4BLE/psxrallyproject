@@ -133,7 +133,7 @@ public:
 	void drawRect(RECT<int32_t> rect, int z, uint32_t col);
 	void drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, int col);
     void drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uint32_t col);
-	void drawModel(const Model *model, GTEVector32 pos, GTEVector32 rot);
+	void drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot);
 	void printString(XY<int32_t> pos, int z, const char *str);
     void printStringf(XY<int32_t> pos, int z, const char *fmt, ...);
     
