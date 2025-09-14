@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdint.h>
+#ifdef PLATFORM_PSX
 #include "ps1/gte.h"
 
 // The GTE uses a 20.12 fixed-point format for most values. What this means is
@@ -14,3 +16,15 @@ void setupGTE(void);
 void multiplyCurrentMatrixByVectors(GTEMatrix *output);
 void rotateCurrentMatrix(int yaw, int pitch, int roll);
 };
+#else 
+
+typedef struct __attribute__((aligned(4))) {
+	int16_t x, y;
+	int16_t z, _padding;
+} GTEVector16;
+
+typedef struct __attribute__((aligned(4))) {
+	int32_t x, y, z;
+} GTEVector32;
+
+#endif

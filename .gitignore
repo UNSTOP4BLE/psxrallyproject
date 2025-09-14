@@ -14,3 +14,4 @@ __pycache__/
 # Do not include user-specific workspace and configuration files.
 *.code-workspace
 CMakeUserPresets.json
+Thumbs.db

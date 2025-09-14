@@ -7,33 +7,51 @@
 	},
 	"configurePresets": [
 		{
-			"name":        "debug",
+			"name":        "psx-debug",
 			"displayName": "Debug build",
 			"description": "Build the project with no optimization and assertions enabled.",
 			"generator":   "Ninja",
-			"binaryDir":   "${sourceDir}/build",
+			"binaryDir":   "${sourceDir}/build/${presetName}",
 			"cacheVariables": {
-				"CMAKE_BUILD_TYPE": "Debug"
+				"CMAKE_BUILD_TYPE": "Debug",
+				"TARGET_PLATFORM": "PSX",
+				"CMAKE_TOOLCHAIN_FILE": "cmake/toolchain.cmake"
 			}
 		},
 		{
-			"name":        "release",
+			"name":        "psx-release",
 			"displayName": "Release build",
 			"description": "Build the project with performance optimization and assertions stripped.",
 			"generator":   "Ninja",
-			"binaryDir":   "${sourceDir}/build",
+			"binaryDir":   "${sourceDir}/build/${presetName}",
 			"cacheVariables": {
-				"CMAKE_BUILD_TYPE": "Release"
+				"CMAKE_BUILD_TYPE": "Release",
+				"TARGET_PLATFORM": "PSX",
+				"CMAKE_TOOLCHAIN_FILE": "cmake/toolchain.cmake"
 			}
 		},
 		{
-			"name":        "min-size-release",
+			"name":        "psx-min-size-release",
 			"displayName": "Minimum size release build",
 			"description": "Build the project with size optimization and assertions stripped.",
 			"generator":   "Ninja",
-			"binaryDir":   "${sourceDir}/build",
+			"binaryDir":   "${sourceDir}/build/${presetName}",
 			"cacheVariables": {
-				"CMAKE_BUILD_TYPE": "MinSizeRel"
+				"CMAKE_BUILD_TYPE": "MinSizeRel",
+				"TARGET_PLATFORM": "PSX",
+				"CMAKE_TOOLCHAIN_FILE": "cmake/toolchain.cmake"
+			}
+		},
+		{
+			"name": "pc-debug",
+			"displayName": "PC Debug",
+			"description": "Debug build for PC",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"TARGET_PLATFORM": "PC",
+		        "CMAKE_TOOLCHAIN_FILE": ""
 			}
 		}
 	]

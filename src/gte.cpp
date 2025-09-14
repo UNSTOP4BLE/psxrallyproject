@@ -1,4 +1,7 @@
+
 #include "gte.hpp"
+
+#ifdef PLATFORM_PSX
 #include "ps1/cop0.h"
 #include "trig.hpp"
 #include "gpu.hpp"
@@ -103,3 +106,4 @@ void rotateCurrentMatrix(int yaw, int pitch, int roll) {
 	}
 }
 }
+#endif

@@ -1,7 +1,7 @@
 #include "timer.hpp"
 
+#ifdef PLATFORM_PSX
 #include "ps1/registers.h"
-
 namespace TIMER {
 
 static constexpr int TIMER2_FREQ = F_CPU / 8;
@@ -25,3 +25,4 @@ uint64_t T2_ms(void) {
     return (T2_val() * uint64_t(tmult)) / uint64_t(tdiv);
 }
 }
+#endif

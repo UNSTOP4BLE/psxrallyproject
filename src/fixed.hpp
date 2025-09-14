@@ -31,6 +31,5 @@ constexpr Num<SHIFT> makeFixed(int num, int den = 1) {
 }
 
 using Fixed16 = Num<16>;
-constexpr Fixed16 G = makeFixed<16>(98, 10);
 
 } 

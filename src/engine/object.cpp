@@ -6,8 +6,7 @@ namespace ENGINE {
 void Object3D::init(const char *modelpath) {
 	file = g_app.fileprovider.openFile(modelpath);
     model = GFX::loadModel(file->fdata); 
-    pos = {0, 0, 0};
-    rot = {0, 0, 0};
+    pos = rot = vel = accel = {0, 0, 0};
 }
 
 void Object3D::setPos(const GTEVector32& p) {

@@ -2,8 +2,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
+#ifdef PLATFORM_PSX
 #include "ps1/registers.h"
-
+#endif
 namespace GFX {
 static void waitForGP0Ready(void);
 static void waitForDMADone(void);

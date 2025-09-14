@@ -1,6 +1,8 @@
 #pragma once
 
+#ifdef PLATFORM_PSX
 #include "ps1/gpucmd.h"
+#endif
 #include "gte.hpp"
 #include "fixed.hpp"
 

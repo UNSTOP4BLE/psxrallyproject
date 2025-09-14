@@ -18,7 +18,7 @@ public:
 private:
     GFX::Model *model;
     ENGINE::FS::File* file;
-    GTEVector32 pos, rot;
+    GTEVector32 pos, rot, vel, accel;
 };
 
 //todo

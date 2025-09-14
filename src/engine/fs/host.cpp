@@ -1,3 +1,4 @@
+#ifdef PLATFORM_PSX
 #include "host.hpp"
 #include "ps1/pcdrv.h"
 #include <assert.h>
@@ -58,3 +59,4 @@ File *HostProvider::openFile(const char *path) {
 }
 
 }
+#endif
