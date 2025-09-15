@@ -4,7 +4,7 @@
 #ifdef PLATFORM_PSX
 #include "ps1/cop0.h"
 #include "trig.hpp"
-#include "gpu.hpp"
+#include "psx/gpupsx.hpp"
 
 namespace GTE {
 void setupGTE(void) {

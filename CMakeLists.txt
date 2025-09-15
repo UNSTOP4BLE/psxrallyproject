@@ -19,6 +19,18 @@ if(TARGET_PLATFORM STREQUAL "PC")
     set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_C_STANDARD 11)        
+    include(FetchContent)
+
+    # GLFW (auto-download from GitHub)
+    FetchContent_Declare(
+    glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw.git
+    GIT_TAG 3.4
+    )
+    FetchContent_MakeAvailable(glfw)
+
+    # OpenGL (system-provided)
+    find_package(OpenGL REQUIRED)
 else()
     include(cmake/setup.cmake)
     # Build a "common" library and link it
@@ -50,9 +62,20 @@ file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS
 
 # Remove commonlib subfolder
 list(FILTER SRC_FILES EXCLUDE REGEX ".*/commonlib/.*")
+if(TARGET_PLATFORM STREQUAL "PC")
+    list(FILTER SRC_FILES EXCLUDE REGEX ".*/psx/.*")
+    add_executable(PSXRallyProject ${SRC_FILES})
+else()
+    list(FILTER SRC_FILES EXCLUDE REGEX ".*/pc/.*")
+    addPS1Executable(PSXRallyProject ${SRC_FILES})
+endif()
 
-addPS1Executable(PSXRallyProject ${SRC_FILES})
 target_compile_definitions(PSXRallyProject PUBLIC PLATFORM_${TARGET_PLATFORM})
+
+if(TARGET_PLATFORM STREQUAL "PC")
+    target_include_directories(PSXRallyProject PRIVATE src/pc/include)
+    target_link_libraries(PSXRallyProject PRIVATE glfw OpenGL::GL)
+endif()
 
 #build images
 file(GLOB_RECURSE _images
