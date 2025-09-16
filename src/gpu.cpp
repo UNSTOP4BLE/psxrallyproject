@@ -1,18 +1,19 @@
-#include "gpupsx.hpp"
+#include "gpu.hpp"
 #include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
-#include "ps1/gpucmd.h"
+#ifdef PLATFORM_PSX
 #include "ps1/registers.h"
-
+#endif
 namespace GFX {
 static void waitForGP0Ready(void);
 static void waitForDMADone(void);
 static void waitForVSync(void);
 static void sendLinkedList(const void *data);
+static void sendVRAMData(const void *data, RECT<int32_t> rect);
 static void clearOT(uint32_t *table, int numentries);
 
-void PSXRenderer::init(int mode) {
+void Renderer::init(GP1VideoMode mode) {
 	// Set the origin of the displayed framebuffer. These "magic" values,
 	// derived from the GPU's internal clocks, will center the picture on most
 	// displays and upscalers.
@@ -49,7 +50,7 @@ void PSXRenderer::init(int mode) {
 	GPU_GP1 = gp1_fbMode(
 		hres,
 		vres,
-		static_cast<GP1VideoMode>(mode),
+		mode,
 		false,
 		GP1_COLOR_16BPP
 	);
@@ -67,7 +68,7 @@ void PSXRenderer::init(int mode) {
 	setClearCol(64,64,64);
 }
 
-void PSXRenderer::beginFrame(void) {
+void Renderer::beginFrame(void) {
     auto newchain = getCurrentChain();
 
     // determine where new framebuffer to draw to is in vram
@@ -90,7 +91,7 @@ void PSXRenderer::beginFrame(void) {
     ptr[6]   = gp0_xy(SCREEN_WIDTH, SCREEN_HEIGHT);
 }
 
-void PSXRenderer::endFrame(void) {
+void Renderer::endFrame(void) {
     auto oldchain = getCurrentChain();
 
     // switch active chain
@@ -110,14 +111,18 @@ void PSXRenderer::endFrame(void) {
     sendLinkedList(&(oldchain->orderingtable)[ORDERING_TABLE_SIZE - 1]);
 }
 
-void PSXRenderer::drawRect(RECT<int32_t> rect, int z, uint32_t col) {
+static inline void addPacketData(uint32_t *ptr, int i, uint32_t p) {
+	ptr[i] = p;       
+}
+
+void Renderer::drawRect(RECT<int32_t> rect, int z, uint32_t col) {
 	auto ptr      = allocatePacket(z, 3);
 	ptr[0]        = col | gp0_rectangle(false, false, false); 
 	ptr[1]        = gp0_xy(rect.x, rect.y);       
 	ptr[2]        = gp0_xy(rect.w, rect.h);  
 }
 
-void PSXRenderer::drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, int col) {
+void Renderer::drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, int col) {
 	auto ptr = allocatePacket(z, 5);
 	ptr[0]        = gp0_texpage(tex.page, false, false);
 	ptr[1]        = col | gp0_rectangle(true, true, false);
@@ -126,7 +131,7 @@ void PSXRenderer::drawTexRect(const TextureInfo &tex, XY<int32_t> pos, int z, in
 	ptr[4]        = gp0_xy(tex.w, tex.h);
 }
 
-void PSXRenderer::drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uint32_t col) {
+void Renderer::drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, uint32_t col) {
     auto ptr  = allocatePacket(z, 10);
 	ptr[0]    = gp0_texpage(tex.page, false, false); // set texture page and CLUT
     ptr[1]    = col | gp0_shadedQuad(false, true, false);
@@ -140,7 +145,7 @@ void PSXRenderer::drawTexQuad(const TextureInfo &tex, RECT<int32_t> pos, int z, 
     ptr[9]    = gp0_uv(tex.u+tex.w, tex.v+tex.h, 0);
 }
 
-void PSXRenderer::drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot) {
+void Renderer::drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot) {
 	gte_setControlReg(GTE_TRX, pos.x.value);
 	gte_setControlReg(GTE_TRY, pos.y.value);
 	gte_setControlReg(GTE_TRZ, pos.z.value);
@@ -256,7 +261,7 @@ void PSXRenderer::drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vect
 	}
 }
 
-uint32_t *PSXRenderer::allocatePacket(int z, int numcommands) {
+uint32_t *Renderer::allocatePacket(int z, int numcommands) {
     auto chain = getCurrentChain();
     auto ptr   = chain->nextpacket;
 
@@ -274,7 +279,7 @@ uint32_t *PSXRenderer::allocatePacket(int z, int numcommands) {
     return &ptr[1];
 }
 
-void PSXRenderer::printString(XY<int32_t> pos, int z, const char *str) {
+void Renderer::printString(XY<int32_t> pos, int z, const char *str) {
 	assert(fontmap);
 	int curx = pos.x, cury = pos.y;
 
@@ -321,7 +326,7 @@ void PSXRenderer::printString(XY<int32_t> pos, int z, const char *str) {
 	ptr[0] = gp0_texpage(fonttex.page, false, false);
 }
 
-void PSXRenderer::printStringf(XY<int32_t> pos, int z, const char *fmt, ...) {
+void Renderer::printStringf(XY<int32_t> pos, int z, const char *fmt, ...) {
     char buf[256];
     va_list args;
     va_start(args, fmt);
@@ -329,6 +334,73 @@ void PSXRenderer::printStringf(XY<int32_t> pos, int z, const char *fmt, ...) {
     va_end(args);
 
     printString(pos, z, buf);
+}
+
+//indexed
+void uploadTexture(TextureInfo &info, const void *image) {
+    const TexHeader* header = reinterpret_cast<const TexHeader*>(image);
+	assert(header->isValid());
+	info = header->texinfo;
+
+	assert((info.w <= 256) && (info.h <= 256));
+
+	int ncolors = (info.bpp == 8) ? 256 : 16;
+	int widthdivider = (info.bpp == 8) ? 2 : 4;
+	
+	sendVRAMData(header->texdata(), {header->vrampos[0], header->vrampos[1], info.w / widthdivider, info.h});
+	waitForDMADone();
+	sendVRAMData(header->clut(), {header->clutpos[0], header->clutpos[1], ncolors, 1});
+	waitForDMADone();
+}
+
+//todo add freeing functions for font
+Model* loadModel(const uint8_t* data) {
+    auto model = new Model(); 
+    model->header = reinterpret_cast<const ModelFileHeader*>(data);
+	assert(model->header->isValid());
+
+    model->vertices = model->header->vertices();
+    model->faces = model->header->faces();
+
+	//textures
+	auto texptr = model->header->textures();
+	
+	int ntex = static_cast<int>(model->header->numtex);
+
+    if (ntex > 0) {
+		model->textures = new TextureInfo[ntex];
+
+		for (int i = 0; i < static_cast<int>(model->header->numtex); i++) {
+			const TexHeader* tex_header = reinterpret_cast<const TexHeader*>(texptr);
+			uploadTexture(model->textures[i], texptr);
+			
+			size_t clutbytes = tex_header->clutsize;
+			size_t texbytes = tex_header->texsize;
+
+			texptr += sizeof(TexHeader) + clutbytes + texbytes;
+		}
+	}
+    return model;
+}
+
+void freeModel(Model *model) {
+    // free textures array if allocated
+    if (model->textures) {
+        delete[] model->textures;
+    }
+
+    // free the model itself
+    delete model;
+}
+
+//todo proper font manager for multiple fonts
+FontData *loadFontMap(const uint8_t *data) {
+    auto fntdata = new FontData();
+    fntdata->header = reinterpret_cast<const FontHeader*>(data);
+	assert(fntdata->header->isValid());
+    fntdata->rects = fntdata->header->rects();
+
+	return fntdata;
 }
 
 static void waitForGP0Ready(void) {
@@ -359,6 +431,36 @@ static void sendLinkedList(const void *data) {
 		| DMA_CHCR_ENABLE;
 }
 
+static void sendVRAMData(const void *data, RECT<int32_t> rect) {
+	waitForDMADone();
+	assert(!((uint32_t) data % 4));
+
+	size_t length = (rect.w * rect.h) / 2;
+	size_t chunksize, numchunks;
+
+	if (length < DMA_MAX_CHUNK_SIZE) {
+		chunksize = length;
+		numchunks = 1;
+	} else {
+		chunksize = DMA_MAX_CHUNK_SIZE;
+		numchunks = length / DMA_MAX_CHUNK_SIZE;
+
+		assert(!(length % DMA_MAX_CHUNK_SIZE));
+	}
+
+	waitForGP0Ready();
+	GPU_GP0 = gp0_vramWrite();
+	GPU_GP0 = gp0_xy(rect.x, rect.y);
+	GPU_GP0 = gp0_xy(rect.w, rect.h);
+
+	DMA_MADR(DMA_GPU) = (uint32_t) data;
+	DMA_BCR (DMA_GPU) = chunksize | (numchunks << 16);
+	DMA_CHCR(DMA_GPU) = 0
+		| DMA_CHCR_WRITE
+		| DMA_CHCR_MODE_SLICE
+		| DMA_CHCR_ENABLE;
+}
+
 static void clearOT(uint32_t *table, int numentries) {
 	DMA_MADR(DMA_OTC) = (uint32_t) &table[numentries - 1];
 	DMA_BCR (DMA_OTC) = numentries;
@@ -372,9 +474,4 @@ static void clearOT(uint32_t *table, int numentries) {
 	while (DMA_CHCR(DMA_OTC) & DMA_CHCR_ENABLE)
 		__asm__ volatile("");
 }
-
-static inline void addPacketData(uint32_t *ptr, int i, uint32_t p) {
-	ptr[i] = p;       
-}
-
 }

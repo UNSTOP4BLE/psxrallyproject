@@ -1,4 +1,4 @@
 #am i a idiot? yes
-rm -rf build
+rm -r build
 cmake --preset psx-debug
 cmake --build build/psx-debug

@@ -1,6 +1,5 @@
 #include "scene.hpp"
 #include "../app.hpp"
-#include <stddef.h>  
 
 namespace ENGINE::SCENE {
 

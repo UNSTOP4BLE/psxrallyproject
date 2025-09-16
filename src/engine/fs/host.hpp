@@ -1,4 +1,3 @@
-#ifdef PLATFORM_PSX
 #pragma once 
 
 #include "file.hpp"
@@ -27,4 +26,3 @@ public:
 };
 
 }
-#endif
