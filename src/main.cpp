@@ -1,4 +1,5 @@
 #include "app.hpp"
+#include "pc/gpugl.hpp"
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
@@ -45,7 +46,7 @@ int main(int argc, const char **argv) {
 		g_app.renderer.beginFrame();
 		
 		assert(g_app.curscene);
-     
+		g_app.renderer.drawRect({32, 32, 64, 64}, 0, gp0_rgb(255, 0, 0));
         g_app.curscene->update();  
         g_app.curscene->draw();  
 

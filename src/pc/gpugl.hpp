@@ -2,6 +2,8 @@
 
 #include "../gpu.hpp"
 #include "../fixed.hpp"
+#include <glad/glad.h>    
+#include <GLFW/glfw3.h>
 
 inline uint32_t gp0_rgb(uint8_t r, uint8_t g, uint8_t b) {
     return ((r & 0xFF) << 0)
@@ -31,7 +33,9 @@ public:
 	TextureInfo fonttex;
 	FontData *fontmap;
 private:
-	bool usingsecondframe;
+    GLFWwindow* window;
+    GLuint prog;
+    GLuint vao, vbo;
 	int framecounter;
     uint32_t clearcol;
 
