@@ -9,7 +9,7 @@ from common import GTEVector16, Face, TexHeader, ModelFileHeader
 def reorder_z_shape(indices):
     print(indices)
     if (len(indices) == 4):
-        return [indices[0], indices[1], indices[3], indices[2]]
+        return [indices[0], indices[1], indices[2], indices[3]]
     elif (len(indices) == 3):
         return [indices[0], indices[1], indices[2], -1]  # Pad triangle
     else:
@@ -94,9 +94,9 @@ if (__name__ == '__main__'):
         #vertices
         if (data[0] == "v"):
             v = GTEVector16()
-            #should be fixed point, 4096 instead of 32
+            #todo should be fixed point, 4096 instead of 32
             v.x = int(float(data[1])*32)
-            v.y = int(float(data[2])*32)
+            v.y = -int(float(data[2])*32)
             v.z = int(float(data[3])*32)
             vertices.append(v)
 
@@ -143,6 +143,8 @@ if (__name__ == '__main__'):
 
     fin.close()
 
+    for vert in vertices:
+        print(vert.x, vert.y, vert.z)
     #make model file
     fout = open(sys.argv[2], 'wb')
 

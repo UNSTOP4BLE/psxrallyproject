@@ -1,10 +1,8 @@
 
 #include "gte.hpp"
 
-#ifdef PLATFORM_PSX
 #include "ps1/cop0.h"
-#include "trig.hpp"
-#include "gpu.hpp"
+#include "../trig.hpp"
 
 namespace GTE {
 void setupGTE(void) {
@@ -16,14 +14,14 @@ void setupGTE(void) {
 	// Set the offset to be added to all calculated screen space coordinates (we
 	// want our cube to appear at the center of the screen) Note that OFX and
 	// OFY are 16.16 fixed-point rather than 20.12.
-	gte_setControlReg(GTE_OFX, (GFX::SCREEN_WIDTH  << 16) / 2);
-	gte_setControlReg(GTE_OFY, (GFX::SCREEN_HEIGHT << 16) / 2);
+//	gte_setControlReg(GTE_OFX, (GFX::SCREEN_WIDTH  << 16) / 2);
+//	gte_setControlReg(GTE_OFY, (GFX::SCREEN_HEIGHT << 16) / 2);
 
 	// Set the distance of the perspective projection plane (i.e. the camera's
 	// focal length), which affects the field of view.
-	int focallen = (GFX::SCREEN_WIDTH < GFX::SCREEN_HEIGHT) ? GFX::SCREEN_WIDTH : GFX::SCREEN_HEIGHT;
+//	int focallen = (GFX::SCREEN_WIDTH < GFX::SCREEN_HEIGHT) ? GFX::SCREEN_WIDTH : GFX::SCREEN_HEIGHT;
 
-	gte_setControlReg(GTE_H, focallen / 2);
+//	gte_setControlReg(GTE_H, focallen / 2);
 
 	// Set the scaling factor for Z averaging. For each polygon drawn, the GTE
 	// will sum the transformed Z coordinates of its vertices multiplied by this
@@ -31,8 +29,8 @@ void setupGTE(void) {
 	// be sorted into. This will work best if the ordering table length is a
 	// multiple of 12 (i.e. both 3 and 4) or high enough to make any rounding
 	// error negligible.
-	gte_setControlReg(GTE_ZSF3, ORDERING_TABLE_SIZE / 3);
-	gte_setControlReg(GTE_ZSF4, ORDERING_TABLE_SIZE / 4);
+//	gte_setControlReg(GTE_ZSF3, ORDERING_TABLE_SIZE / 3);
+//	gte_setControlReg(GTE_ZSF4, ORDERING_TABLE_SIZE / 4);
 }
 
 // When transforming vertices, the GTE will multiply their vectors by a 3x3
@@ -105,5 +103,4 @@ void rotateCurrentMatrix(int yaw, int pitch, int roll) {
 		gte_loadRotationMatrix(&multiplied);
 	}
 }
-}
-#endif
+} //namespace GTE

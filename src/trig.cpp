@@ -40,4 +40,4 @@ int isin2(int x) {
 
 	return (c >= 0) ? y : (-y);
 }
-}
+} //namespace TRIG

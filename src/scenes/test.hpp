@@ -2,8 +2,6 @@
 
 #include "../app.hpp"
 
-#include "../engine/object.hpp"
-
 class TestSCN : public ENGINE::SCENE::Scene {
 public:
     TestSCN(void);
@@ -11,5 +9,5 @@ public:
     void draw(void);
     ~TestSCN(void); 
 private:
-    ENGINE::Object3D car;
+//    ENGINE::Object3D car;
 };
