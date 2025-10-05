@@ -19,11 +19,14 @@ public:
     void setClearCol(uint8_t r, uint8_t g, uint8_t b) {
 //        clearcol = gp0_rgb(r, g, b);
     }
+	uint32_t getFPS(void) {return fps;}
 
     static Renderer &instance();
 
 protected:
-	int32_t scrw, scrh;
+	uint32_t scrw, scrh;
+    uint32_t refreshrate, fps;
+    uint32_t vsynccounter, framecounter;
     uint32_t clearcol;
     Renderer() {}
 };
@@ -54,9 +57,10 @@ public:
     void printStringf(ENGINE::COMMON::XY32 pos, int z, const char *fmt, ...);
 private:
 	bool usingsecondframe;
-	int framecounter;
 	DMAChain dmachains[2];
 
+	void waitForVSync(void);
+	void handleVSyncInterrupt(void);
 	uint32_t *allocatePacket(int z, int numcommands);
 
 	DMAChain *getCurrentChain(void) {

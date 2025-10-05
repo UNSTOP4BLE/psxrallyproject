@@ -8,7 +8,6 @@ namespace ENGINE::PSX {
 //helpers
 static void waitForGP0Ready(void);
 static void waitForDMADone(void);
-static void waitForVSync(void);
 static void clearOT(uint32_t *table, int numentries);
 static void sendLinkedList(const void *data);
 
@@ -18,10 +17,13 @@ PSXRenderer::PSXRenderer(void) {
 	if ((GPU_GP1 & GP1_STAT_FB_MODE_BITMASK) == GP1_STAT_FB_MODE_PAL) {
 		puts("Using PAL mode");
 		mode = GP1_MODE_PAL;
+		refreshrate = 50;
 	} else {
 		puts("Using NTSC mode");
 		mode = GP1_MODE_NTSC;
+		refreshrate = 60;
 	}
+	fps = 0;
 
 	// Set the origin of the displayed framebuffer. These "magic" values,
 	// derived from the GPU's internal clocks, will center the picture on most
@@ -149,11 +151,26 @@ static void waitForDMADone(void) {
 		__asm__ volatile("");
 }
 
-static void waitForVSync(void) {
+void PSXRenderer::waitForVSync(void) {
 	while (!(IRQ_STAT & (1 << IRQ_VSYNC)))
 		__asm__ volatile("");
 
 	IRQ_STAT = ~(1 << IRQ_VSYNC);
+}
+
+void PSXRenderer::handleVSyncInterrupt(void) {
+	__atomic_signal_fence(__ATOMIC_ACQUIRE);
+	
+    const auto renderer = reinterpret_cast<PSXRenderer *>(rendererInstance.get());
+
+    renderer->vsynccounter++;
+    if (renderer->vsynccounter >= renderer->refreshrate) {
+        renderer->fps = renderer->framecounter;
+        renderer->vsynccounter -= renderer->refreshrate;
+        renderer->framecounter = 0;
+    }
+
+	__atomic_signal_fence(__ATOMIC_RELEASE);
 }
 
 uint32_t *PSXRenderer::allocatePacket(int z, int numcommands) {

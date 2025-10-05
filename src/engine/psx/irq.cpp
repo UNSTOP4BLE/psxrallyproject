@@ -5,6 +5,7 @@
 #include "ps1/cdrom.h"
 
 #include "../timer.hpp"
+#include "../renderer.hpp"
 
 namespace ENGINE::PSX {
 
@@ -12,7 +13,7 @@ void handleT2Interrupt(void) {
     reinterpret_cast<PSXTimer *>(timerInstance.get())->t2irqcount ++;
 }
 
-void handleCDROMIRQ(void) {
+void handleCDROMInterrupt(void) {
     CDROM_ADDRESS = 1;
 
     uint8_t irqType = CDROM_HINTSTS & (0
@@ -66,7 +67,10 @@ static void handleInterrupts(void *arg0, void *arg1){
         handleT2Interrupt();
     }
 //    if(acknowledgeInterrupt(IRQ_CDROM)){
-  //      handleCDROMIRQ();
+  //      handleCDROMInterrupt();
+    //}
+//    if(acknowledgeInterrupt(IRQ_VSYNC)){
+  //      handleVSyncInterrupt();
     //}
 }
 
@@ -77,7 +81,7 @@ void initIRQ(void){
     setInterruptHandler(handleInterrupts, nullptr, nullptr);
 
     // The IRQ mask specifies which interrupt sources are actually allowed to raise an interrupt.
-    IRQ_MASK = (1 << IRQ_TIMER2);// | (1 << IRQ_CDROM);
+    IRQ_MASK = (1 << IRQ_TIMER2);// | (1 << IRQ_CDROM) | (1 << IRQ_VSYNC);
     cop0_enableInterrupts();
 }
 

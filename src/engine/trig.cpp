@@ -6,7 +6,7 @@
 
 #include "trig.hpp"
 
-namespace TRIG {
+namespace ENGINE::TRIG {
 #define A (1 << 12)
 #define B 19900
 #define	C  3516

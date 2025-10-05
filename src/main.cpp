@@ -33,6 +33,7 @@ int main(void) {
 
 		printf("time %llu\n", ENGINE::timerInstance.get()->getMS());
 		
+//		printf("fps%d\n", ENGINE::rendererInstance.get()->getFPS());
 #ifdef PLATFORM_PSX
 //		g_app.renderer.printStringf({5, 5}, 0, "Heap usage: %zu/%zu bytes", getHeapUsage(), _heapLimit-_heapEnd);
 		printf("Heap usage: %zu/%zu bytes\n", getHeapUsage(), _heapLimit-_heapEnd);

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace TRIG {
+namespace ENGINE::TRIG {
 #define ISIN_SHIFT  10
 #define ISIN2_SHIFT 15
 #define ISIN_PI     (1 << (ISIN_SHIFT  + 1))
