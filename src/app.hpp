@@ -1,10 +1,10 @@
 #pragma once 
 
-#include "engine/scene.hpp"
+#include "engine/common.hpp"
 
 class APP {
 public:
-	ENGINE::SCENE::Scene *curscene;
+  	ENGINE::COMMON::UniquePtr<ENGINE::COMMON::Scene> curscene;
 };
 
 extern APP g_app;

@@ -34,6 +34,9 @@ else()
         src/commonlib/libc/string.s
         src/commonlib/ps1/cache.s
         src/commonlib/ps1/pcdrv.s
+        src/commonlib/ps1/system.c
+        src/commonlib/ps1/system.s
+        src/commonlib/ps1/unhandledexc.c
         src/commonlib/vendor/printf.c
     )
     target_include_directories(
@@ -43,6 +46,7 @@ else()
     )
     link_libraries(common)
 endif()
+
 # Grab everything under src recursively
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.*"

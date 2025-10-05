@@ -2,7 +2,7 @@
 
 #include "../app.hpp"
 
-class TestSCN : public ENGINE::SCENE::Scene {
+class TestSCN : public ENGINE::COMMON::Scene {
 public:
     TestSCN(void);
     void update(void);
