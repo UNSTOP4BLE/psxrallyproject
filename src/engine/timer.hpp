@@ -15,7 +15,7 @@ protected:
     Timer() {}
 };
 
-extern COMMON::ServiceLocator<Timer> timerInstance;
+extern COMMON::ServiceLocator<Timer> g_timerInstance;
 
 //psx
 namespace PSX {

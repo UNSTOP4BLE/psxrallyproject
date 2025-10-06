@@ -3,6 +3,7 @@
 #include <stdio.h> //puts
 #include "ps1/registers.h"
 #include "ps1/gpucmd.h"
+#include "ps1/system.h"
 
 namespace ENGINE::PSX {
 //helpers
@@ -23,7 +24,6 @@ PSXRenderer::PSXRenderer(void) {
 		mode = GP1_MODE_NTSC;
 		refreshrate = 60;
 	}
-	fps = 0;
 
 	// Set the origin of the displayed framebuffer. These "magic" values,
 	// derived from the GPU's internal clocks, will center the picture on most
@@ -78,7 +78,7 @@ PSXRenderer::PSXRenderer(void) {
     // Turn the display on (unblank)
     GPU_GP1 = gp1_dispBlank(false);
 	usingsecondframe = false;
-	framecounter = 0;
+	framecounter = vsynccounter = fps = 0;
 	setClearCol(64,64,64);
 	clearcol = 0x888888;
 }
@@ -139,6 +139,19 @@ void PSXRenderer::drawRect(ENGINE::COMMON::RECT32 rect, int z, uint32_t col) {
 void PSXRenderer::printString(ENGINE::COMMON::XY32 pos, int z, const char *str) {}
 void PSXRenderer::printStringf(ENGINE::COMMON::XY32 pos, int z, const char *fmt, ...) {}
 
+void PSXRenderer::handleVSyncInterrupt(void) {
+	__atomic_signal_fence(__ATOMIC_ACQUIRE);
+	
+    vsynccounter++;
+    if (vsynccounter >= refreshrate) {
+        fps = framecounter;
+        vsynccounter -= refreshrate;
+        framecounter = 0;
+    }
+
+	__atomic_signal_fence(__ATOMIC_RELEASE);
+}
+
 
 //helpers
 static void waitForGP0Ready(void) {
@@ -152,25 +165,22 @@ static void waitForDMADone(void) {
 }
 
 void PSXRenderer::waitForVSync(void) {
-	while (!(IRQ_STAT & (1 << IRQ_VSYNC)))
-		__asm__ volatile("");
+	uint32_t lastcounter = vsynccounter;
 
-	IRQ_STAT = ~(1 << IRQ_VSYNC);
-}
+    framecounter++;
+	__atomic_signal_fence(__ATOMIC_RELEASE);
 
-void PSXRenderer::handleVSyncInterrupt(void) {
-	__atomic_signal_fence(__ATOMIC_ACQUIRE);
-	
-    const auto renderer = reinterpret_cast<PSXRenderer *>(rendererInstance.get());
+    // wait for up to 25ms (vsync is every 16.6ms at 60hz or every 20ms at 50hz)
+    for (int i = 2500; i > 0; i--) {
+		__atomic_signal_fence(__ATOMIC_ACQUIRE);
 
-    renderer->vsynccounter++;
-    if (renderer->vsynccounter >= renderer->refreshrate) {
-        renderer->fps = renderer->framecounter;
-        renderer->vsynccounter -= renderer->refreshrate;
-        renderer->framecounter = 0;
+        if (vsynccounter != lastcounter)
+            return;
+
+        delayMicroseconds(10);
     }
 
-	__atomic_signal_fence(__ATOMIC_RELEASE);
+    printf("timeout while waiting for vsync! something has gone horribly wrong\n");
 }
 
 uint32_t *PSXRenderer::allocatePacket(int z, int numcommands) {

@@ -2,7 +2,7 @@
 
 namespace ENGINE {
 
-COMMON::ServiceLocator<Timer> timerInstance;
+COMMON::ServiceLocator<Timer> g_timerInstance;
 
 Timer &Timer::instance() {
     static Timer *instance;

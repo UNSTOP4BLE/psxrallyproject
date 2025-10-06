@@ -31,7 +31,7 @@ protected:
     Renderer() {}
 };
 
-extern COMMON::ServiceLocator<Renderer> rendererInstance;
+extern COMMON::ServiceLocator<Renderer> g_rendererInstance;
 
 //psx
 namespace PSX {
@@ -55,12 +55,12 @@ public:
 	//void drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot);
 	void printString(ENGINE::COMMON::XY32 pos, int z, const char *str);
     void printStringf(ENGINE::COMMON::XY32 pos, int z, const char *fmt, ...);
+	void handleVSyncInterrupt(void);
 private:
 	bool usingsecondframe;
 	DMAChain dmachains[2];
 
 	void waitForVSync(void);
-	void handleVSyncInterrupt(void);
 	uint32_t *allocatePacket(int z, int numcommands);
 
 	DMAChain *getCurrentChain(void) {

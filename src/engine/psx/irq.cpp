@@ -10,7 +10,9 @@
 namespace ENGINE::PSX {
 
 void handleT2Interrupt(void) {
-    reinterpret_cast<PSXTimer *>(timerInstance.get())->t2irqcount ++;
+	__atomic_signal_fence(__ATOMIC_ACQUIRE);
+    reinterpret_cast<PSXTimer *>(g_timerInstance.get())->t2irqcount ++;
+	__atomic_signal_fence(__ATOMIC_RELEASE);
 }
 
 void handleCDROMInterrupt(void) {
@@ -63,15 +65,15 @@ void handleCDROMInterrupt(void) {
 // This is the first step to handling the IRQ.
 // It will acknowledge the interrupt on the COP0 side, and call the relevant handler for the device.
 static void handleInterrupts(void *arg0, void *arg1){
-    if(acknowledgeInterrupt(IRQ_TIMER2)){
+    if (acknowledgeInterrupt(IRQ_TIMER2)){
         handleT2Interrupt();
     }
-//    if(acknowledgeInterrupt(IRQ_CDROM)){
+//    if (acknowledgeInterrupt(IRQ_CDROM)){
   //      handleCDROMInterrupt();
     //}
-//    if(acknowledgeInterrupt(IRQ_VSYNC)){
-  //      handleVSyncInterrupt();
-    //}
+    if (acknowledgeInterrupt(IRQ_VSYNC)){
+        reinterpret_cast<PSXRenderer *>(g_rendererInstance.get())->handleVSyncInterrupt();
+    }
 }
 
 void initIRQ(void){
@@ -81,7 +83,10 @@ void initIRQ(void){
     setInterruptHandler(handleInterrupts, nullptr, nullptr);
 
     // The IRQ mask specifies which interrupt sources are actually allowed to raise an interrupt.
-    IRQ_MASK = (1 << IRQ_TIMER2);// | (1 << IRQ_CDROM) | (1 << IRQ_VSYNC);
+    IRQ_MASK = 0 | 
+            (1 << IRQ_TIMER2) | 
+            (1 << IRQ_CDROM) |
+            (1 << IRQ_VSYNC);
     cop0_enableInterrupts();
 }
 
