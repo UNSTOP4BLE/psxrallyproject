@@ -1,8 +1,8 @@
 #include "irq.hpp"
 
-#include "ps1/system.h"
-#include "ps1/cop0.h"
-#include "ps1/cdrom.h"
+#include <ps1/system.h>
+#include <ps1/cop0.h>
+#include <ps1/cdrom.h>
 
 #include "../timer.hpp"
 #include "../renderer.hpp"

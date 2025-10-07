@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdint.h>
-#include "ps1/gte.h"
+#include <ps1/gte.h>
 
 // The GTE uses a 20.12 fixed-point format for most values. What this means is
 // that fractional values will be stored as integers by multiplying them by a

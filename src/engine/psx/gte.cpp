@@ -1,7 +1,7 @@
 
 #include "gte.hpp"
 
-#include "ps1/cop0.h"
+#include <ps1/cop0.h>
 #include "../trig.hpp"
 
 namespace ENGINE::PSX {

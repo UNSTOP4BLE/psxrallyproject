@@ -7,6 +7,7 @@
 #include "engine/renderer.hpp"
 
 #include "engine/psx/irq.hpp"
+#include "engine/psx/cd.hpp"
 
 APP g_app;
 
@@ -17,6 +18,7 @@ int main(void) {
 #ifdef PLATFORM_PSX
 	initSerialIO(115200);
 	ENGINE::PSX::initIRQ();
+	ENGINE::PSX::g_CDInstance.provide( &ENGINE::PSX::CDRom::instance());
 #endif
 	ENGINE::g_timerInstance.provide( &ENGINE::Timer::instance());
 	ENGINE::g_rendererInstance.provide( &ENGINE::Renderer::instance());

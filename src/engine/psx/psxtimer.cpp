@@ -1,6 +1,6 @@
 #include "../timer.hpp"
 
-#include "ps1/registers.h"
+#include <ps1/registers.h>
 
 namespace ENGINE::PSX {
 

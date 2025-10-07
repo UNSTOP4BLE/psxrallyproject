@@ -1,9 +1,9 @@
 #include "../renderer.hpp"
 #include <assert.h>
 #include <stdio.h> //puts
-#include "ps1/registers.h"
-#include "ps1/gpucmd.h"
-#include "ps1/system.h"
+#include <ps1/registers.h>
+#include <ps1/gpucmd.h>
+#include <ps1/system.h>
 
 namespace ENGINE::PSX {
 //helpers
