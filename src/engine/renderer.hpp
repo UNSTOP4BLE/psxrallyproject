@@ -31,7 +31,7 @@ protected:
     Renderer() {}
 };
 
-extern COMMON::ServiceLocator<Renderer> g_rendererInstance;
+extern TEMPLATES::ServiceLocator<Renderer> g_rendererInstance;
 
 //psx
 namespace PSX {

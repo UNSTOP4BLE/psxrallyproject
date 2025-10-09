@@ -2,6 +2,6 @@
 
 namespace ENGINE::PSX {
 
-void initIRQ(void);
+    void initIRQ(void);
 
 } 

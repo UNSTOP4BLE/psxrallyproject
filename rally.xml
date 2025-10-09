@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<iso_project image_name="PSXRP.bin" cue_sheet="PSXRP.cue" no_xa="0">
+	<!-- Data track -->
+	<track type="data">
+		<identifiers
+			system        = "PLAYSTATION"
+			application   = "PLAYSTATION"
+			volume        = "PSXRP"
+			volume_set    = "PSXRP"
+			publisher     = "UNSTOP4BLE"
+			copyright     = "UNSTOP4BLE"
+		/>
+		<license file="licensea.dat"/>
+		
+		<directory_tree>
+			<file name = "system.cnf" type = "data" source = "assets/system.cnf"/>
+			<file name = "SCUS_000.00" type = "data" source = "build/psx-debug/PSXRallyProject.psexe"/>
+			
+		</directory_tree>
+	</track>
+</iso_project>

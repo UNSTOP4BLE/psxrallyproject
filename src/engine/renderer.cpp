@@ -2,7 +2,7 @@
 
 namespace ENGINE {
 
-COMMON::ServiceLocator<Renderer> g_rendererInstance;
+TEMPLATES::ServiceLocator<Renderer> g_rendererInstance;
 
 Renderer &Renderer::instance() {
     static Renderer *instance;

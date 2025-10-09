@@ -1,7 +1,7 @@
 #pragma once 
 
 #include <stdint.h>
-#include "common.hpp"
+#include "templates.hpp"
 
 namespace ENGINE {
 
@@ -15,7 +15,7 @@ protected:
     Timer() {}
 };
 
-extern COMMON::ServiceLocator<Timer> g_timerInstance;
+extern TEMPLATES::ServiceLocator<Timer> g_timerInstance;
 
 //psx
 namespace PSX {

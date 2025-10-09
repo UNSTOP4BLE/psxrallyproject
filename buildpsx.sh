@@ -2,4 +2,5 @@
 rm -r build &&
 cmake --preset psx-debug &&
 cmake --build build/psx-debug &&
-/Applications/PCSX-Redux.app/Contents/MacOS/PCSX-Redux  -pcdrv -pcdrvbase /Users/bruno/Desktop/psxrallyproject/build/psx-debug/assets  -exe /Users/bruno/Desktop/psxrallyproject/build/psx-debug/PSXRallyProject.psexe
+mkpsxiso -y rally.xml &&
+/Applications/PCSX-Redux.app/Contents/MacOS/PCSX-Redux  -pcdrv -pcdrvbase /Users/bruno/Desktop/psxrallyproject/build/psx-debug/assets -iso /Users/bruno/Desktop/psxrallyproject/PSXRP.cue

@@ -9,10 +9,10 @@
 // bits long). We'll define this unit value to make their handling easier.
 namespace ENGINE::PSX {
 
-constexpr uint16_t ONE = (1 << 12);
+    constexpr uint16_t ONE = (1 << 12);
 
-void setupGTE(const int scrw, const int scrh, const int otlen);
-void multiplyCurrentMatrixByVectors(GTEMatrix *output);
-void rotateCurrentMatrix(int yaw, int pitch, int roll);
+    void setupGTE(const int scrw, const int scrh, const int otlen);
+    void multiplyCurrentMatrixByVectors(GTEMatrix *output);
+    void rotateCurrentMatrix(int yaw, int pitch, int roll);
 
 } 

@@ -16,9 +16,7 @@ include(cmake/tools.cmake)
 
 # PC-specific settings
 if(TARGET_PLATFORM STREQUAL "PC")
-    set(CMAKE_CXX_STANDARD 17)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    set(CMAKE_C_STANDARD 11)        
+    #blah
 else()
     include(cmake/setup.cmake)
     # Build a "common" library and link it
@@ -57,6 +55,7 @@ list(FILTER SRC_FILES EXCLUDE REGEX ".*/commonlib/.*")
 
 addPS1Executable(PSXRallyProject ${SRC_FILES})
 target_compile_definitions(PSXRallyProject PUBLIC PLATFORM_${TARGET_PLATFORM})
+target_compile_features(PSXRallyProject PRIVATE cxx_std_20)
 
 #build images
 file(GLOB_RECURSE _images
