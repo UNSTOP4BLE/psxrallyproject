@@ -65,7 +65,7 @@ namespace ENGINE::PSX {
         ISO9660::PVD pvd;
         //pvd sector
         ENGINE::PSX::g_CDInstance.get()->startRead(16, &pvd, sizeof(pvd) / ENGINE::PSX::SECTOR_SIZE, true, true); 
-        assert(pvd.magic == "CD001"_c); //todo _c operator
+        //assert(pvd.magic == "CD001"_c); //todo _c operator
         ENGINE::COMMON::hexDump(reinterpret_cast<const void *>(&pvd), sizeof(pvd));
     }
 

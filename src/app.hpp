@@ -4,7 +4,7 @@
 
 class APP {
 public:
-  	ENGINE::COMMON::UniquePtr<ENGINE::COMMON::Scene> curscene;
+  	ENGINE::TEMPLATES::UniquePtr<ENGINE::COMMON::Scene> curscene;
 };
 
 extern APP g_app;
