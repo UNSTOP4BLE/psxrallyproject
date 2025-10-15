@@ -15,7 +15,7 @@ APP g_app;
 #include "scenes/test.hpp"
 
 int main(void) {
-/*
+
 #ifdef PLATFORM_PSX
 	initSerialIO(115200);
 	ENGINE::PSX::initIRQ();
@@ -41,7 +41,6 @@ int main(void) {
 //		printf("Heap usage: %zu/%zu bytes\n", getHeapUsage(), _heapLimit-_heapEnd);
 #endif
 		ENGINE::g_rendererInstance.get()->endFrame();
-	} */
-	 while (1) {}
+	} 
 	return 0;
 }
