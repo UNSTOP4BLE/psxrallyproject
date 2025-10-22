@@ -7,6 +7,8 @@ namespace ENGINE {
 
 class FileSystem {
 public:
+    virtual uint8_t *readFile(const char *filename) {}
+
     static FileSystem &instance();
 protected:
     FileSystem() {}
@@ -20,6 +22,8 @@ namespace PSX {
 class PSXFileSystem : public FileSystem {
 public:
 	PSXFileSystem(void);	
+
+    uint8_t *readFile(const char *filename);
 private:
 };
 } 
