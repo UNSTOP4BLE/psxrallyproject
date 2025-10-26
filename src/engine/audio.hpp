@@ -5,23 +5,22 @@
 
 namespace ENGINE {
 
-class Audio {
-public:
-    static Audio &instance();
-protected:
-    Audio() {}
-};
+    class Audio {
+    public:
+        static Audio &instance();
+    protected:
+        Audio() {}
+    };
 
-extern TEMPLATES::ServiceLocator<Audio> g_audioInstance;
+    extern TEMPLATES::ServiceLocator<Audio> g_audioInstance;
 
-//psx
-namespace PSX {
-
-class PSXAudio : public Audio {
-public:
-	PSXAudio(void);	
-private:
-};
-} 
+    //psx
+    namespace PSX {
+        class PSXAudio : public Audio {
+        public:
+            PSXAudio(void);	
+        private:
+        };
+    } 
 
 }

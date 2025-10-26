@@ -2,14 +2,14 @@
 
 namespace ENGINE {
 
-TEMPLATES::ServiceLocator<Renderer> g_rendererInstance;
+    TEMPLATES::ServiceLocator<Renderer> g_rendererInstance;
 
-Renderer &Renderer::instance() {
-    static Renderer *instance;
-    #ifdef PLATFORM_PSX
-    instance = new PSX::PSXRenderer();
-    #endif
-    return *instance;
-}
+    Renderer &Renderer::instance() {
+        static Renderer *instance;
+        #ifdef PLATFORM_PSX
+        instance = new PSX::PSXRenderer();
+        #endif
+        return *instance;
+    }
 
 }

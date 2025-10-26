@@ -5,30 +5,30 @@
 
 namespace ENGINE {
 
-class Timer {
-public:
-    virtual uint64_t getMS(void) {return 0;}
+    class Timer {
+    public:
+        virtual uint64_t getMS(void) {return 0;}
 
-    static Timer &instance();
+        static Timer &instance();
 
-protected:
-    Timer() {}
-};
+    protected:
+        Timer() {}
+    };
 
-extern TEMPLATES::ServiceLocator<Timer> g_timerInstance;
+    extern TEMPLATES::ServiceLocator<Timer> g_timerInstance;
 
-//psx
-namespace PSX {
-class PSXTimer : public Timer {
-public:
-    uint32_t t2irqcount;
+    //psx
+    namespace PSX {
+        class PSXTimer : public Timer {
+        public:
+            uint32_t t2irqcount;
 
-    PSXTimer(void);
-    uint64_t getMS(void);
-private:
-    uint64_t getT2_value(void); 
+            PSXTimer(void);
+            uint64_t getMS(void);
+        private:
+            uint64_t getT2_value(void); 
 
-};
-}
+        };
+    }
 
 }
