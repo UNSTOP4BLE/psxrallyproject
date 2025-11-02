@@ -19,25 +19,27 @@ namespace ENGINE::TEMPLATES {
         XY(T _x, T _y) : x(_x), y(_y) {}
     };
 
+
+
+    //primary template (for single objects)
     template <typename T>
     class UniquePtr {
     public:
-        explicit UniquePtr(T* ptr = 0) : ptr_(ptr) {}
+        explicit UniquePtr(T* ptr = nullptr) : ptr_(ptr) {}
         ~UniquePtr() { reset(); }
 
         UniquePtr(const UniquePtr&) = delete;
         UniquePtr& operator=(const UniquePtr&) = delete;
 
-        UniquePtr(UniquePtr&& other) {
-            ptr_ = other.ptr_;
-            other.ptr_ = 0;
+        UniquePtr(UniquePtr&& other) noexcept : ptr_(other.ptr_) {
+            other.ptr_ = nullptr;
         }
 
-        UniquePtr& operator=(UniquePtr&& other) {
+        UniquePtr& operator=(UniquePtr&& other) noexcept {
             if (this != &other) {
                 reset();
                 ptr_ = other.ptr_;
-                other.ptr_ = 0;
+                other.ptr_ = nullptr;
             }
             return *this;
         }
@@ -45,22 +47,66 @@ namespace ENGINE::TEMPLATES {
         T* get() const { return ptr_; }
         T& operator*() const { return *ptr_; }
         T* operator->() const { return ptr_; }
-        operator bool() const { return ptr_ != 0; }
+        operator bool() const { return ptr_ != nullptr; }
 
-        void reset(T* new_ptr = 0) {
+        void reset(T* new_ptr = nullptr) {
             if (ptr_) delete ptr_;
             ptr_ = new_ptr;
         }
 
         T* release() {
             T* tmp = ptr_;
-            ptr_ = 0;
+            ptr_ = nullptr;
             return tmp;
         }
 
     private:
         T* ptr_;
     };
+
+
+    //partial specialization (for arrays)
+    template <typename T>
+    class UniquePtr<T[]> {
+    public:
+        explicit UniquePtr(T* ptr = nullptr) : ptr_(ptr) {}
+        ~UniquePtr() { reset(); }
+
+        UniquePtr(const UniquePtr&) = delete;
+        UniquePtr& operator=(const UniquePtr&) = delete;
+
+        UniquePtr(UniquePtr&& other) noexcept : ptr_(other.ptr_) {
+            other.ptr_ = nullptr;
+        }
+
+        UniquePtr& operator=(UniquePtr&& other) noexcept {
+            if (this != &other) {
+                reset();
+                ptr_ = other.ptr_;
+                other.ptr_ = nullptr;
+            }
+            return *this;
+        }
+
+        T* get() const { return ptr_; }
+        T& operator[](uint32_t index) const { return ptr_[index]; }
+        operator bool() const { return ptr_ != nullptr; }
+
+        void reset(T* new_ptr = nullptr) {
+            if (ptr_) delete[] ptr_;
+            ptr_ = new_ptr;
+        }
+
+        T* release() {
+            T* tmp = ptr_;
+            ptr_ = nullptr;
+            return tmp;
+        }
+
+    private:
+        T* ptr_;
+    };
+
 
     template <typename T>
     class ServiceLocator {

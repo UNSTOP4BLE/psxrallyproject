@@ -27,4 +27,12 @@ namespace ENGINE::COMMON {
     };
 
     void hexDump(const void* data, uint32_t size);
+
+    constexpr int min(int a, int b) {
+        return (a < b) ? a : b;
+    }
+
+    constexpr int max(int a, int b) {
+        return (a > b) ? a : b;
+    }
 } //namespace ENGINE::COMMON
