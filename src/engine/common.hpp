@@ -35,4 +35,8 @@ namespace ENGINE::COMMON {
     constexpr int max(int a, int b) {
         return (a > b) ? a : b;
     }
+
+    inline bool isBufferAligned(void *buf) {
+        return !(uintptr_t(buf) % alignof(uint32_t));
+    }
 } //namespace ENGINE::COMMON

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../common.hpp"
+#include <stdio.h>
 
 namespace ENGINE::PSX {
 
@@ -9,7 +10,7 @@ namespace ENGINE::PSX {
     class CDRom {
     public:
         void issueCMD(uint8_t cmd, const uint8_t *arg, int argLength);
-        void startRead(uint32_t lba, void *ptr, int numSectors, bool doubleSpeed, bool wait);
+        bool startRead(uint32_t lba, void *ptr, int numSectors, bool doubleSpeed, bool wait);
 
         void irqDataReady(void);
         void irqComplete(void);
@@ -29,23 +30,22 @@ namespace ENGINE::PSX {
         int readSectorSize;
         int readNumSectors;
         uint8_t status;
+        bool erroroccured;
         
         void waitDataReady(void) {
-            while(waitingForDataReady && waitingForError){
+            while(waitingForDataReady && waitingForError)
                 __asm__ volatile("");
-            }
         }
 
         void waitComplete(void){
-            while(waitingForComplete){
+            while(waitingForComplete)
                 __asm__ volatile("");
-            }
         }
 
         void waitAcknowledge(void){
-            while(waitingForAcknowledge && waitingForError){
+            while(waitingForAcknowledge && waitingForError)
                 __asm__ volatile("");
-            }
+
         }
 
         CDRom() {};

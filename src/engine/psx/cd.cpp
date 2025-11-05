@@ -50,6 +50,7 @@ namespace ENGINE::PSX {
         
         instance->responselen = 0;
         instance->status = 0;
+        instance->erroroccured = false;
 
         return *instance;
     };
@@ -79,7 +80,7 @@ namespace ENGINE::PSX {
         CDROM_COMMAND = cmd;
     }
 
-    void CDRom::startRead(uint32_t lba, void *ptr, int numSectors, bool doubleSpeed, bool wait) {
+    bool CDRom::startRead(uint32_t lba, void *ptr, int numSectors, bool doubleSpeed, bool wait) {
         readPtr = ptr;
         readNumSectors = numSectors;
         readSectorSize = SECTOR_SIZE; //for 90% of use cases 2048 is fine, the exception being xa files and whatnot
@@ -103,9 +104,24 @@ namespace ENGINE::PSX {
         assert(waitingForDataReady);
 
         if (wait) {
-            while (waitingForDataReady)
-                delayMicroseconds(2);
+            while (true) {
+                __atomic_signal_fence(__ATOMIC_ACQUIRE);
+
+                if (erroroccured) { //read error
+                    erroroccured = false;
+                    readNumSectors = 0;
+                    __atomic_signal_fence(__ATOMIC_RELEASE);
+                    return false;
+                }
+
+                if (readNumSectors <= 0)
+                    return true;
+
+                // should probably add a timeout check here too, in case the drive takes too long without returning any data
+                
+            }
         }
+        return true;
     }
 
     //int1
@@ -152,6 +168,7 @@ namespace ENGINE::PSX {
     void CDRom::irqError(void) {
         puts("read error cdrom");
         waitingForError = false;
+        erroroccured = true;
     }
 
 }

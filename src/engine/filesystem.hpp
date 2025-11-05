@@ -9,9 +9,10 @@ namespace ENGINE {
     public:
         uint64_t size;
 
+        bool open(const char *path) {return false;}
         virtual uint32_t read(void *output, uint32_t length) { return 0; }
         virtual uint64_t seek(uint64_t offset) { return 0; }
-        virtual uint64_t tell(void) const { return 0; }
+        uint64_t tell(void) const { return _offset; }
         virtual void close(void) {}
     protected:
         uint64_t _offset;
@@ -121,11 +122,17 @@ namespace ENGINE {
         
         class PSXFile : public File {
         public:
-            PSXFile(void);
+            PSXFile(void) {};
 
+            bool open(const char *path);
             uint32_t read(void *output, uint32_t length);
-            uint64_t seek(uint64_t offset) {_offset = ENGINE::COMMON::min(offset, size); return _offset;}
-            void close(void) {}
+            uint64_t seek(uint64_t offset);
+            void close(void);
+        private:
+        	uint32_t _startLBA;
+            uint32_t _bufferedLBA;
+            uint8_t  _sectorBuffer[SECTOR_SIZE];
+            bool loadSector(uint32_t lba);
         };
 
         class PSXFileSystem : public FileSystem {
