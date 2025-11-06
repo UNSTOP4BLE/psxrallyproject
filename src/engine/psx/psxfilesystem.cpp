@@ -132,7 +132,6 @@ namespace ENGINE::PSX {
     }
 
     uint64_t PSXFile::seek(uint64_t offset) {
-        //todo move drive head
         _offset = ENGINE::COMMON::min(offset, size); 
         
         return _offset;

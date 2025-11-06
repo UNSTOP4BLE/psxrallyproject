@@ -7,13 +7,11 @@ TestSCN::TestSCN(void) {
     //todo improve file loading so i dont need to allocate a ton of crap
   //  car.init("cars/impreza555/impreza555.xmdl");
     ENGINE::PSX::PSXFile f;
-    f.open("DIR1/DIR2/FILE1;1");
-    
-    uint32_t size = f.size;
-    printf("fsize %u\n", size);
-    auto buffer = new uint8_t[size];
-    f.read(buffer, size);
-    ENGINE::COMMON::hexDump(buffer, size);
+    f.open("CARS/IMPREZA555;1");
+    printf("File size = %u bytes\n", f.size);
+
+    uint8_t buf[f.size];
+
 } 
 
 void TestSCN::update(void) {

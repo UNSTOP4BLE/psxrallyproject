@@ -17,10 +17,8 @@
 			<file name = "system.cnf" type = "data" source = "assets/system.cnf"/>
 			<file name = "SCUS_000.00" type = "data" source = "build/psx-debug/PSXRallyProject.psexe"/>
 			
-			<dir name = "dir1">
-				<dir name = "dir2">
-					<file name = "file1" type = "data" source = "assets/hi1.txt"/>
-				</dir>
+			<dir name = "cars">
+				<file name = "impreza555" type = "data" source = "build/psx-debug/assets/cars/impreza555/impreza555.xmdl"/>
 			</dir>
 			
 			<dir name = "dir3">

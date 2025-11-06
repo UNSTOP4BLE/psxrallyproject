@@ -96,7 +96,7 @@ if (__name__ == '__main__'):
             v = GTEVector16()
             #todo should be fixed point, 4096 instead of 32
             v.x = int(float(data[1])*32)
-            v.y = -int(float(data[2])*32)
+            v.y = int(float(data[2])*32)
             v.z = int(float(data[3])*32)
             vertices.append(v)
 
