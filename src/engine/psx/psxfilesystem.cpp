@@ -158,9 +158,6 @@ namespace ENGINE::PSX {
         printf("build from %s\n", pvd.creation_date);
 
         rootdir = reinterpret_cast<const ISO9660::Entry*>(&pvd.rootdir);
-//        auto dir = getEntry(rootdir, "DIR1/DIR2");
-        // Get the directory name
-  //      printf("Directory name: %s\0\n", dir->getName());
     }
     
 

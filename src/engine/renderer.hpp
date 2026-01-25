@@ -1,6 +1,8 @@
 #pragma once 
 
 #include "common.hpp"
+#include <glad/glad.h>
+#include <SDL2/SDL.h>
 
 namespace ENGINE {
 
@@ -13,21 +15,16 @@ namespace ENGINE {
 	//	virtual void drawTexRect(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, int col) {}
 	//  virtual void drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, uint32_t col) {}
 	//	virtual void drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot) {}
-		virtual void printString(ENGINE::COMMON::XY32 pos, int z, const char *str) {}
-		virtual void printStringf(ENGINE::COMMON::XY32 pos, int z, const char *fmt, ...) {}
 		
-		void setClearCol(uint8_t r, uint8_t g, uint8_t b) {
-	//        clearcol = gp0_rgb(r, g, b);
-		}
+		virtual void setClearCol(uint8_t r, uint8_t g, uint8_t b) {}
 		uint32_t getFPS(void) {return fps;}
 
 		static Renderer &instance();
 
 	protected:
 		uint32_t scrw, scrh;
-		uint32_t refreshrate, fps;
-		uint32_t vsynccounter, framecounter;
-		uint32_t clearcol;
+		uint32_t refreshrate, fps; //todo populate on gl render
+		uint32_t vsynccounter, framecounter; //todo populate on gl render
 		Renderer() {}
 	};
 
@@ -53,9 +50,8 @@ namespace ENGINE {
 		//	void drawTexRect(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, int col);
 		//   void drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, uint32_t col);
 			//void drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot);
-			void printString(ENGINE::COMMON::XY32 pos, int z, const char *str);
-			void printStringf(ENGINE::COMMON::XY32 pos, int z, const char *fmt, ...);
-			void handleVSyncInterrupt(void);
+
+			void handleVSyncInterrupt(void); //for irqs
 		private:
 			bool usingsecondframe;
 			DMAChain dmachains[2];
@@ -67,6 +63,28 @@ namespace ENGINE {
 				return &dmachains[usingsecondframe];
 			}
 
+		};
+	} 
+
+	namespace GENERIC {
+			
+		class GLRenderer : public Renderer {
+		public:
+			GLRenderer(void);
+			
+			void beginFrame(void);
+			void endFrame(void);
+
+			void drawRect(ENGINE::COMMON::RECT32 rect, int z, uint32_t col);
+		//	void drawTexRect(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, int col);
+		//   void drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, uint32_t col);
+			//void drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot);
+			void setClearCol(uint8_t r, uint8_t g, uint8_t b) {
+				glClearColor(r/255.0f, g/255.0f, b/255.0f, 1.0f);
+			}
+	
+		private:
+			SDL_Window* window;
 		};
 	} 
 

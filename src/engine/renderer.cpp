@@ -8,6 +8,8 @@ namespace ENGINE {
         static Renderer *instance;
         #ifdef PLATFORM_PSX
         instance = new PSX::PSXRenderer();
+        #else
+        instance = new GENERIC::GLRenderer();
         #endif
         return *instance;
     }

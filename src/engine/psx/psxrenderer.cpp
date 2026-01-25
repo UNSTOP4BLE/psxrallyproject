@@ -80,7 +80,6 @@ namespace ENGINE::PSX {
 		usingsecondframe = false;
 		framecounter = vsynccounter = fps = 0;
 		setClearCol(64,64,64);
-		clearcol = 0x888888;
 	}
 
 	void PSXRenderer::beginFrame(void) {
@@ -136,8 +135,6 @@ namespace ENGINE::PSX {
 	//void PSXRenderer::drawTexRect(const TextureInfo &tex, ENGINE::COMMON::XY<int32_t> pos, int z, int col) {}
 	//void PSXRenderer::drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT<int32_t> pos, int z, uint32_t col) {}
 	//void PSXRenderer::drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot) {}
-	void PSXRenderer::printString(ENGINE::COMMON::XY32 pos, int z, const char *str) {}
-	void PSXRenderer::printStringf(ENGINE::COMMON::XY32 pos, int z, const char *fmt, ...) {}
 
 	void PSXRenderer::handleVSyncInterrupt(void) {
 		__atomic_signal_fence(__ATOMIC_ACQUIRE);

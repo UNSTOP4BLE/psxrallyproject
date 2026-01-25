@@ -19,8 +19,6 @@ namespace ENGINE::TEMPLATES {
         XY(T _x, T _y) : x(_x), y(_y) {}
     };
 
-
-
     //primary template (for single objects)
     template <typename T>
     class UniquePtr {

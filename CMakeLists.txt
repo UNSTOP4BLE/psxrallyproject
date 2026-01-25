@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 
-# Tell CMake about the project. The VERSION, DESCRIPTION and HOMEPAGE_URL fields
-# are optional, but the project name and LANGUAGES field should be present.
 project(
-	PSXRallyProject
+	main
 	LANGUAGES    C CXX ASM
 	VERSION      1.0.0
 	DESCRIPTION  "PSXRallyProject"
@@ -52,104 +50,127 @@ file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS
 
 # Remove commonlib subfolder
 list(FILTER SRC_FILES EXCLUDE REGEX ".*/commonlib/.*")
+list(FILTER SRC_FILES EXCLUDE REGEX ".*/glad/.*")
 
-addPS1Executable(PSXRallyProject ${SRC_FILES})
-target_compile_definitions(PSXRallyProject PUBLIC PLATFORM_${TARGET_PLATFORM})
-target_compile_features(PSXRallyProject PRIVATE cxx_std_20)
+if(TARGET_PLATFORM STREQUAL "PSX")
+    list(FILTER SRC_FILES EXCLUDE REGEX ".*/generic/.*")
+    addPS1Executable(main ${SRC_FILES})
+else()
+    find_package(SDL2 REQUIRED)
+    include_directories(${SDL2_INCLUDE_DIRS})
+    find_package(OpenGL REQUIRED)
 
-#build images
-file(GLOB_RECURSE _images
-    RELATIVE ${PROJECT_SOURCE_DIR}
-    assets/*.png
-)
-list(FILTER _images EXCLUDE REGEX ".*/sourcefiles/.*")
+    add_library(glad "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/generic/glad/src/glad.c")
+    target_include_directories(glad PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/generic/glad/include")
 
-foreach(_in ${_images})
-    get_filename_component(_basename ${_in} NAME_WE)
-    get_filename_component(_path ${_in} PATH)
-
-    set(_out_dir ${_path})
-    file(MAKE_DIRECTORY ${_out_dir})
-    set(_out_xtex ${_out_dir}/${_basename}.xtex)
-    set(_in_vram ${_path}/${_basename}.vram)
-
-    convertImage(
-        ${_in}      
-        ${_out_xtex} 
-        ${_in_vram}   
+    list(FILTER SRC_FILES EXCLUDE REGEX ".*/psx/.*")
+    add_executable(main ${SRC_FILES})
+    target_link_libraries(main  
+    glad
+    ${SDL2_LIBRARIES}
+    OpenGL::GL
     )
 
-    list(APPEND _built_images ${_out_xtex})
-endforeach()
+    
+endif()
 
-add_custom_target(Images ALL
-    DEPENDS ${_built_images}
-)
-
-#build models
-file(GLOB_RECURSE _models
-    RELATIVE ${PROJECT_SOURCE_DIR}
-    assets/*.obj
-)
-list(FILTER _models EXCLUDE REGEX ".*/sourcefiles/.*")
-
-foreach(_in ${_models})
-    get_filename_component(_basename ${_in} NAME_WE)
-    get_filename_component(_path ${_in} PATH)
-
-    set(_out_dir ${_path})
-    file(MAKE_DIRECTORY ${_out_dir})
-    set(_out_xmdl ${_out_dir}/${_basename}.xmdl)
-    set(_tex_dir ${_path}/)
-
-	convertModel(
-        ${_in}      
-        ${_out_xmdl} 
-        ${_tex_dir}   
-	)
-
-    list(APPEND _built_models ${_out_xmdl})
-endforeach()
-
-add_custom_target(Models ALL
-    DEPENDS ${_built_models}
-)
-
-#build fonts
-file(GLOB_RECURSE _fonts
-    RELATIVE ${PROJECT_SOURCE_DIR}
-    assets/*.json
-)
-list(FILTER _fonts EXCLUDE REGEX ".*/sourcefiles/.*")
-
-foreach(_in ${_fonts})
-    get_filename_component(_basename ${_in} NAME_WE)
-    get_filename_component(_path ${_in} PATH)
-
-    set(_out_dir ${_path})
-    file(MAKE_DIRECTORY ${_out_dir})
-    set(_out_xfnt ${_out_dir}/${_basename}.xfnt)
-
-	convertFont(
-        ${_in}      
-        ${_out_xfnt} 
-	)
-
-    list(APPEND _built_fonts ${_out_xfnt})
-endforeach()
-
-add_custom_target(Fonts ALL
-    DEPENDS ${_built_fonts}
-)
+target_compile_definitions(main PUBLIC PLATFORM_${TARGET_PLATFORM})
+target_compile_features(main PRIVATE cxx_std_20)
 
 
-add_custom_target(Assets ALL)
-#textures
-add_dependencies(Assets Images)
-#models
-add_dependencies(Models Images) #model depends on images
-add_dependencies(Assets Models)
-#fonts
-add_dependencies(Assets Fonts)
+# #build images
+# file(GLOB_RECURSE _images
+#     RELATIVE ${PROJECT_SOURCE_DIR}
+#     assets/*.png
+# )
+# list(FILTER _images EXCLUDE REGEX ".*/sourcefiles/.*")
 
-add_dependencies(PSXRallyProject Assets)
+# foreach(_in ${_images})
+#     get_filename_component(_basename ${_in} NAME_WE)
+#     get_filename_component(_path ${_in} PATH)
+
+#     set(_out_dir ${_path})
+#     file(MAKE_DIRECTORY ${_out_dir})
+#     set(_out_xtex ${_out_dir}/${_basename}.xtex)
+#     set(_in_vram ${_path}/${_basename}.vram)
+
+#     convertImage(
+#         ${_in}      
+#         ${_out_xtex} 
+#         ${_in_vram}   
+#     )
+
+#     list(APPEND _built_images ${_out_xtex})
+# endforeach()
+
+# add_custom_target(Images ALL
+#     DEPENDS ${_built_images}
+# )
+
+# #build models
+# file(GLOB_RECURSE _models
+#     RELATIVE ${PROJECT_SOURCE_DIR}
+#     assets/*.obj
+# )
+# list(FILTER _models EXCLUDE REGEX ".*/sourcefiles/.*")
+
+# foreach(_in ${_models})
+#     get_filename_component(_basename ${_in} NAME_WE)
+#     get_filename_component(_path ${_in} PATH)
+
+#     set(_out_dir ${_path})
+#     file(MAKE_DIRECTORY ${_out_dir})
+#     set(_out_xmdl ${_out_dir}/${_basename}.xmdl)
+#     set(_tex_dir ${_path}/)
+
+# 	convertModel(
+#         ${_in}      
+#         ${_out_xmdl} 
+#         ${_tex_dir}   
+# 	)
+
+#     list(APPEND _built_models ${_out_xmdl})
+# endforeach()
+
+# add_custom_target(Models ALL
+#     DEPENDS ${_built_models}
+# )
+
+# #build fonts
+# file(GLOB_RECURSE _fonts
+#     RELATIVE ${PROJECT_SOURCE_DIR}
+#     assets/*.json
+# )
+# list(FILTER _fonts EXCLUDE REGEX ".*/sourcefiles/.*")
+
+# foreach(_in ${_fonts})
+#     get_filename_component(_basename ${_in} NAME_WE)
+#     get_filename_component(_path ${_in} PATH)
+
+#     set(_out_dir ${_path})
+#     file(MAKE_DIRECTORY ${_out_dir})
+#     set(_out_xfnt ${_out_dir}/${_basename}.xfnt)
+
+# 	convertFont(
+#         ${_in}      
+#         ${_out_xfnt} 
+# 	)
+
+#     list(APPEND _built_fonts ${_out_xfnt})
+# endforeach()
+
+# add_custom_target(Fonts ALL
+#     DEPENDS ${_built_fonts}
+# )
+
+
+# add_custom_target(Assets ALL)
+# #textures
+# add_dependencies(Assets Images)
+# #models
+# add_dependencies(Models Images) #model depends on images
+# add_dependencies(Assets Models)
+# #fonts
+# add_dependencies(Assets Fonts)
+
+# add_dependencies(PSXRallyProject Assets)

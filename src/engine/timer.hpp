@@ -31,4 +31,13 @@ namespace ENGINE {
         };
     }
 
+    namespace GENERIC {
+        class ChronoTimer : public Timer {
+        public:
+            ChronoTimer(void);
+            uint64_t getMS(void);
+        private:
+        };
+    }
+
 }

@@ -117,7 +117,7 @@ namespace ENGINE::PSX {
                 if (readNumSectors <= 0)
                     return true;
 
-                // should probably add a timeout check here too, in case the drive takes too long without returning any data
+                // todo should probably add a timeout check here too, in case the drive takes too long without returning any data
                 
             }
         }
