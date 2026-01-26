@@ -15,11 +15,11 @@
 		
 		<directory_tree>
 			<file name = "system.cnf" type = "data" source = "assets/system.cnf"/>
-			<file name = "SCUS_000.00" type = "data" source = "build/psx-debug/PSXRallyProject.psexe"/>
+			<file name = "SCUS_000.00" type = "data" source = "build/psx-debug/main.psexe"/>
 			
-			<dir name = "cars">
+<!-- 			<dir name = "cars">
 				<file name = "impreza555" type = "data" source = "build/psx-debug/assets/cars/impreza555/impreza555.xmdl"/>
-			</dir>
+			</dir>-->
 			
 			<dir name = "dir3">
 				<file name = "file2" type = "data" source = "assets/hi2.txt"/>

@@ -1,15 +1,17 @@
 #include "test.hpp"
-#include "../engine/psx/cd.hpp"
 #include "../engine/filesystem.hpp"
 #include <stdio.h>
+
 //int testx = 0;
 TestSCN::TestSCN(void) {
     //todo improve file loading so i dont need to allocate a ton of crap
-  //  car.init("cars/impreza555/impreza555.xmdl");
-//    ENGINE::PSX::PSXFile f;
+  //  car.init("cars/impreza555/impreza555.xmdl");<
+//    ENGINE::File *f = ENGINE::g_fileSystemInstance.get()->findFile("DIR3/FILE2");
   //  f.open("CARS/IMPREZA555;1");
-    //printf("File size = %u bytes\n", f.size);
-
+//    printf("File size = %llu bytes\n", f->getSize());
+  //  uint8_t buf[16];
+    //auto read = f->read(buf, 16);
+    //printf("read returned %u\n", read);
     //uint8_t buf[f.size];
 
 } 

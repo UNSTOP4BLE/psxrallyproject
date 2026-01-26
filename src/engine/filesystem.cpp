@@ -6,9 +6,11 @@ namespace ENGINE {
 
     FileSystem &FileSystem::instance() {
         static FileSystem *instance;
-        #ifdef PLATFORM_PSX
+#ifdef PLATFORM_PSX
         instance = new PSX::PSXFileSystem();
-        #endif
+#else
+        instance = new GENERIC::GenericFileSystem();
+#endif
         return *instance;
     }
 

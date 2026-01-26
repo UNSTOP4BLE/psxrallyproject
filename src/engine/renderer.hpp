@@ -1,8 +1,12 @@
 #pragma once 
 
 #include "common.hpp"
+#ifdef PLATFORM_PSX
+
+#else
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
+#endif
 
 namespace ENGINE {
 
@@ -31,6 +35,7 @@ namespace ENGINE {
 	extern TEMPLATES::ServiceLocator<Renderer> g_rendererInstance;
 
 	//psx
+#ifdef PLATFORM_PSX
 	namespace PSX {
 			
 		struct DMAChain {
@@ -51,8 +56,13 @@ namespace ENGINE {
 		//   void drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, uint32_t col);
 			//void drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot);
 
+			void setClearCol(uint8_t r, uint8_t g, uint8_t b) {
+				clearcol = (b << 16) | (g << 8) | r; 
+			}
+		
 			void handleVSyncInterrupt(void); //for irqs
 		private:
+			uint32_t clearcol;
 			bool usingsecondframe;
 			DMAChain dmachains[2];
 
@@ -65,7 +75,7 @@ namespace ENGINE {
 
 		};
 	} 
-
+#else
 	namespace GENERIC {
 			
 		class GLRenderer : public Renderer {
@@ -87,5 +97,5 @@ namespace ENGINE {
 			SDL_Window* window;
 		};
 	} 
-
+#endif
 }

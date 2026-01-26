@@ -1,7 +1,6 @@
 #pragma once
 
-#include "../common.hpp"
-#include <stdio.h>
+#include "../templates.hpp"
 
 namespace ENGINE::PSX {
 

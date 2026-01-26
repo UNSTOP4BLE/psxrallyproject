@@ -6,11 +6,11 @@ namespace ENGINE {
 
     Renderer &Renderer::instance() {
         static Renderer *instance;
-        #ifdef PLATFORM_PSX
+#ifdef PLATFORM_PSX
         instance = new PSX::PSXRenderer();
-        #else
+#else
         instance = new GENERIC::GLRenderer();
-        #endif
+#endif
         return *instance;
     }
 

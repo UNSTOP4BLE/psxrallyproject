@@ -1,6 +1,6 @@
 #include "../filesystem.hpp"
+#include "../common.hpp"
 #include <assert.h>
-#include <stdio.h>
 #include <string.h>
 
 namespace ENGINE::PSX {
@@ -69,23 +69,12 @@ namespace ENGINE::PSX {
     }
 
     //file
-    bool PSXFile::open(const char *path) {
-        auto file = getEntry(reinterpret_cast<PSXFileSystem *>(g_fileSystemInstance.get())->rootdir, path);
-        
-        if (file == nullptr)
-            return false;
-
-        _startLBA = file->lba.le;
-        size = file->datalength.le;
-        return true;
-    }
-
     uint32_t PSXFile::read(void *output, uint32_t length) {
         auto ptr    = uintptr_t(output);
         auto offset = uint32_t(_offset);
 
         // Do not read any data past the end of the file.
-        length = ENGINE::COMMON::min(length, size_t(size) - offset);
+        length = ENGINE::COMMON::min(length, size_t(_size) - offset);
 
         for (auto remaining = length; remaining > 0;) {
             auto sectorOffset = offset / SECTOR_SIZE;
@@ -132,14 +121,14 @@ namespace ENGINE::PSX {
     }
 
     uint64_t PSXFile::seek(uint64_t offset) {
-        _offset = ENGINE::COMMON::min(offset, size); 
+        _offset = ENGINE::COMMON::min(offset, _size); 
         
         return _offset;
     }
 
-    void PSXFile::close(void) {
-
-    }
+ //   void PSXFile::close(void) {
+//
+ //   }
 
     bool PSXFile::loadSector(uint32_t lba) {
         if (lba == _bufferedLBA)
@@ -155,10 +144,26 @@ namespace ENGINE::PSX {
         //pvd sector
         g_CDInstance.get()->startRead(16, &pvd, sizeof(pvd) / ENGINE::PSX::SECTOR_SIZE, true, true); 
         //assert(pvd.magic == "CD001"_c); //todo _c operator
-        printf("build from %s\n", pvd.creation_date);
 
         rootdir = reinterpret_cast<const ISO9660::Entry*>(&pvd.rootdir);
     }
-    
+
+    File *PSXFileSystem::findFile(const char *path) {
+        char fixedPath[256];
+
+        strcpy(fixedPath, path);
+        // append ";1" for iso9660
+        strcat(fixedPath, ";1");
+
+        auto entry = getEntry(this->rootdir, fixedPath);
+        assert(entry);
+
+        PSXFile *file = new PSXFile();
+        file->_startLBA = entry->lba.le;
+        file->_size     = entry->datalength.le;
+        file->_offset   = 0;
+        
+        return file;
+    }
 
 } 

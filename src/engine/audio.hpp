@@ -1,7 +1,6 @@
 #pragma once 
 
 #include "templates.hpp"
-//#include "psx/audio.hpp"
 
 namespace ENGINE {
 
@@ -15,6 +14,7 @@ namespace ENGINE {
     extern TEMPLATES::ServiceLocator<Audio> g_audioInstance;
 
     //psx
+#ifdef PLATFORM_PSX
     namespace PSX {
         class PSXAudio : public Audio {
         public:
@@ -22,5 +22,9 @@ namespace ENGINE {
         private:
         };
     } 
-
+#else
+    namespace GENERIC {
+        
+    }
+#endif
 }

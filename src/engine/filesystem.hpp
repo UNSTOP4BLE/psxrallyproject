@@ -1,34 +1,39 @@
 #pragma once 
 
 #include "templates.hpp"
+
+#ifdef PLATFORM_PSX
 #include "psx/cd.hpp"
+#else 
+#include <stdio.h>
+#include <stdint.h>
+#endif
 
 namespace ENGINE { 
 
     class File {
     public:
-        uint64_t size;
-
-        bool open(const char *path) {return false;}
         virtual uint32_t read(void *output, uint32_t length) { return 0; }
         virtual uint64_t seek(uint64_t offset) { return 0; }
-        uint64_t tell(void) const { return _offset; }
-        virtual void close(void) {}
+        virtual uint64_t tell(void) { return 0; }
+        uint64_t getSize(void) const { return _size; }
     protected:
-        uint64_t _offset;
+        uint64_t _size;
     };
 
     class FileSystem {
     public:
-
         static FileSystem &instance();
+        virtual File *findFile(const char *path) { return nullptr; }
     protected:
         FileSystem() {}
+        virtual ~FileSystem() = default;
     };
-
+ 
     extern TEMPLATES::ServiceLocator<FileSystem> g_fileSystemInstance;
 
     //psx
+#ifdef PLATFORM_PSX
     namespace PSX {
         namespace ISO9660 {
             template<typename T> struct [[gnu::packed]] ISOInt {
@@ -121,28 +126,47 @@ namespace ENGINE {
         }
         
         class PSXFile : public File {
+            friend class PSXFileSystem;
         public:
-            PSXFile(void) {};
-
-            bool open(const char *path);
             uint32_t read(void *output, uint32_t length);
             uint64_t seek(uint64_t offset);
-            void close(void);
-        private:
+            uint64_t tell(void) { return _offset; }
+        protected:
         	uint32_t _startLBA;
             uint32_t _bufferedLBA;
-            uint8_t  _sectorBuffer[SECTOR_SIZE];
+            uint8_t  _sectorBuffer[SECTOR_SIZE];    
+            uint64_t _offset;
             bool loadSector(uint32_t lba);
         };
 
         class PSXFileSystem : public FileSystem {
         public:
             PSXFileSystem(void);	
-
-            const ISO9660::Entry* rootdir;
+            File *findFile(const char *path); 
         private:
+            const ISO9660::Entry* rootdir;
             ISO9660::PVD pvd;
         };
     } 
+#else 
+    namespace GENERIC {
 
+        class GenericFile : public File {
+            friend class GenericFileSystem;
+        public:
+            uint32_t read(void *output, uint32_t length);
+            uint64_t seek(uint64_t offset);
+            uint64_t tell(void) { return ftell(_handle); }
+        protected:
+            FILE* _handle;
+            ~GenericFile(void) {if (_handle) fclose(_handle);}
+        };
+
+        class GenericFileSystem : public FileSystem {
+        public:
+            GenericFileSystem(void);	
+            File *findFile(const char *path); 
+        };
+    }
+#endif
 }

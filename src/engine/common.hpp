@@ -1,8 +1,8 @@
 #pragma once 
 
-#include <stdint.h>
-
 #include "templates.hpp"
+
+#include <stdint.h>
 
 namespace ENGINE::COMMON {
 
