@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 namespace ENGINE::TEMPLATES {
+
     template<typename T>
     struct [[gnu::packed]] RECT {
         T x, y, w, h;
@@ -17,6 +18,19 @@ namespace ENGINE::TEMPLATES {
 
         XY() = default;
         XY(T _x, T _y) : x(_x), y(_y) {}
+    };
+
+    template<typename T>
+    struct [[gnu::packed]] TRI {
+        XY<T> pos[3];
+
+        TRI() = default;
+
+        TRI(const XY<T>& p0, const XY<T>& p1, const XY<T>& p2) {
+            pos[0] = p0;
+            pos[1] = p1;
+            pos[2] = p2;
+        }
     };
 
     //primary template (for single objects)

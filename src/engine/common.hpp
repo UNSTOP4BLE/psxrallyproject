@@ -17,6 +17,7 @@ namespace ENGINE::COMMON {
     //common definitions
     using RECT32 = ENGINE::TEMPLATES::RECT<int32_t>;
     using XY32   = ENGINE::TEMPLATES::XY<int32_t>;
+    using TRI32   = ENGINE::TEMPLATES::TRI<int32_t>;
 
     class Scene {
     public:

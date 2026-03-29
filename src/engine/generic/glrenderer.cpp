@@ -4,7 +4,7 @@
 #include <SDL2/SDL.h>
 #include <assert.h>
 
-    namespace ENGINE::GENERIC {
+namespace ENGINE::GENERIC {
         
     void GLShader::init(const char *path, GLenum type) {
         ENGINE::File *f = ENGINE::g_fileSystemInstance.get()->findFile(path);
@@ -64,8 +64,8 @@
         assert(err);
 
         // link shaders
-        vertshader.init("", GL_VERTEX_SHADER);
-        fragshader.init("", GL_FRAGMENT_SHADER);
+        vertshader.init("assets/vertex.glsl", GL_VERTEX_SHADER);
+        fragshader.init("assets/fragment.glsl", GL_FRAGMENT_SHADER);
         shaderprog = glCreateProgram();
         glAttachShader(shaderprog, vertshader.getId());
         glAttachShader(shaderprog, fragshader.getId());
@@ -76,6 +76,7 @@
         vertshader.free();
         fragshader.free();
 
+        glViewport(0, 0, scrw, scrh);
         setClearCol(64, 64, 64);
     }
 
@@ -86,12 +87,59 @@
     void GLRenderer::endFrame(void) {
         SDL_GL_SwapWindow(window);
     }
+        
+    void GLRenderer::drawTri(const ENGINE::COMMON::TRI32 &tri, uint32_t z, uint32_t col) {
+        float vertices[] = {
+            (float)tri.pos[0].x, (float)tri.pos[0].y,
+            (float)tri.pos[1].x, (float)tri.pos[1].y,
+            (float)tri.pos[2].x, (float)tri.pos[2].y
+        };
 
-    void GLRenderer::drawRect(ENGINE::COMMON::RECT32 rect, int z, uint32_t col) {
+        GLuint vao, vbo;
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+
+        glBindVertexArray(vao);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        glUseProgram(shaderprog);
+
+        GLint screenLoc = glGetUniformLocation(shaderprog, "uScreenSize");
+        glUniform2f(screenLoc, (float)scrw, (float)scrh);
+
+        float r = ((col >> 24) & 0xFF) / 255.0f;
+        float g = ((col >> 16) & 0xFF) / 255.0f;
+        float b = ((col >> 8) & 0xFF) / 255.0f;
+        float a = (col & 0xFF) / 255.0f;
+
+        GLint colorLoc = glGetUniformLocation(shaderprog, "uColor");
+        glUniform4f(colorLoc, r, g, b, a);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        glDeleteBuffers(1, &vbo);
+        glDeleteVertexArrays(1, &vao);
     }
 
-	//void GLRenderer::drawTexRect(const TextureInfo &tex, ENGINE::COMMON::XY<int32_t> pos, int z, int col) {}
-	//void GLRenderer::drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT<int32_t> pos, int z, uint32_t col) {}
-	//void GLRenderer::drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot) {}
+    void GLRenderer::drawRect(const ENGINE::COMMON::RECT32 &rect, uint32_t z, uint32_t col) {
+        ENGINE::COMMON::XY32 p0(rect.x, rect.y);
+        ENGINE::COMMON::XY32 p1(rect.x + rect.w, rect.y);
+        ENGINE::COMMON::XY32 p2(rect.x + rect.w, rect.y + rect.h);
+        ENGINE::COMMON::XY32 p3(rect.x, rect.y + rect.h);
+
+        ENGINE::COMMON::TRI32 t1(p0, p1, p2);
+        ENGINE::COMMON::TRI32 t2(p0, p2, p3);
+
+        drawTri(t1, z, col);
+        drawTri(t2, z, col);
+    }
+
+	//void GLRenderer::drawTexRect(const TextureInfo &tex, ENGINE::COMMON::XY32 &pos, uint32_t z, uint32_t col) {}
+	//void GLRenderer::drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT32 &pos, uint32_t z, uint32_t col) {}
+	//void GLRenderer::drawModel(const Model *model, const FIXED::Vector12 &pos, FIXED::Vector12 rot) {}
 
 }

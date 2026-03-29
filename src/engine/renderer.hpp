@@ -15,9 +15,11 @@ namespace ENGINE {
 		virtual void beginFrame(void) {}
 		virtual void endFrame(void) {}
 
-		virtual void drawRect(ENGINE::COMMON::RECT32 rect, int z, uint32_t col) {}
-	//	virtual void drawTexRect(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, int col) {}
-	//  virtual void drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, uint32_t col) {}
+		virtual void drawTri(const ENGINE::COMMON::TRI32 &tri, uint32_t z, uint32_t col) {}
+//			virtual void drawTexTri(const TextureInfo &tex, const ENGINE::COMMON::TRI32 &tri, uint32_t z, uint32_t col) {}
+		virtual void drawRect(const ENGINE::COMMON::RECT32 &rect, uint32_t z, uint32_t col) {}
+	//	virtual void drawTexRect(const TextureInfo &tex, const ENGINE::COMMON::XY32 &pos, uint32_t z, uint32_T col) {}
+	//  virtual void drawTexQuad(const TextureInfo &tex, const ENGINE::COMMON::RECT32 &pos, uint32_t z, uint32_t col) {}
 	//	virtual void drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot) {}
 		
 		virtual void setClearCol(uint8_t r, uint8_t g, uint8_t b) {}
@@ -51,9 +53,11 @@ namespace ENGINE {
 			void beginFrame(void);
 			void endFrame(void);
 
-			void drawRect(ENGINE::COMMON::RECT32 rect, int z, uint32_t col);
-		//	void drawTexRect(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, int col);
-		//   void drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, uint32_t col);
+			void drawTri(const ENGINE::COMMON::TRI32 &tri, uint32_t z, uint32_t col);
+			//void drawTexTri(const TextureInfo &tex, const ENGINE::COMMON::TRI32 &tri, uint32_t z, uint32_t col);
+			void drawRect(const ENGINE::COMMON::RECT32 &rect, uint32_t z, uint32_t col);
+	//	 void drawTexRect(const TextureInfo &tex, const ENGINE::COMMON::XY32 &pos, uint32_t z, uint32_T col);
+	//   void drawTexQuad(const TextureInfo &tex, const ENGINE::COMMON::RECT32 &pos, uint32_t z, uint32_t col);
 			//void drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot);
 
 			void setClearCol(uint8_t r, uint8_t g, uint8_t b) {
@@ -67,7 +71,7 @@ namespace ENGINE {
 			DMAChain dmachains[2];
 
 			void waitForVSync(void);
-			uint32_t *allocatePacket(int z, int numcommands);
+			uint32_t *allocatePacket(uint32_t z, size_t numcommands);
 
 			DMAChain *getCurrentChain(void) {
 				return &dmachains[usingsecondframe];
@@ -94,9 +98,11 @@ namespace ENGINE {
 			void beginFrame(void);
 			void endFrame(void);
 
-			void drawRect(ENGINE::COMMON::RECT32 rect, int z, uint32_t col);
-		//	void drawTexRect(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, int col);
-		//   void drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT32 pos, int z, uint32_t col);
+			void drawTri(const ENGINE::COMMON::TRI32 &tri, uint32_t z, uint32_t col);
+			//void drawTexTri(const TextureInfo &tex, const ENGINE::COMMON::TRI32 &tri, uint32_t z, uint32_t col);
+			void drawRect(const ENGINE::COMMON::RECT32 &rect, uint32_t z, uint32_t col);
+	//	 void drawTexRect(const TextureInfo &tex, const ENGINE::COMMON::XY32 &pos, uint32_t z, uint32_T col);
+	//   void drawTexQuad(const TextureInfo &tex, const ENGINE::COMMON::RECT32 &pos, uint32_t z, uint32_t col);
 			//void drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot);
 			void setClearCol(uint8_t r, uint8_t g, uint8_t b) {
 				glClearColor(r/255.0f, g/255.0f, b/255.0f, 1.0f);

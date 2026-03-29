@@ -125,15 +125,15 @@ namespace ENGINE::PSX {
 		sendLinkedList(&(oldchain->orderingtable)[ENGINE::COMMON::ORDERING_TABLE_SIZE - 1]);
 	}
 
-	void PSXRenderer::drawRect(ENGINE::COMMON::RECT32 rect, int z, uint32_t col) {
+	void PSXRenderer::drawRect(ENGINE::COMMON::RECT32 rect, uint32_t z, uint32_t col) {
 		auto ptr      = allocatePacket(z, 3);
 		ptr[0]        = col | gp0_rectangle(false, false, false); 
 		ptr[1]        = gp0_xy(rect.x, rect.y);       
 		ptr[2]        = gp0_xy(rect.w, rect.h);  
 	}
 
-	//void PSXRenderer::drawTexRect(const TextureInfo &tex, ENGINE::COMMON::XY<int32_t> pos, int z, int col) {}
-	//void PSXRenderer::drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT<int32_t> pos, int z, uint32_t col) {}
+	//void PSXRenderer::drawTexRect(const TextureInfo &tex, ENGINE::COMMON::XY<int32_t> pos, uint32_t z, uint32_t col) {}
+	//void PSXRenderer::drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT<int32_t> pos, uint32_t z, uint32_t col) {}
 	//void PSXRenderer::drawModel(const Model *model, FIXED::Vector12 pos, FIXED::Vector12 rot) {}
 
 	void PSXRenderer::handleVSyncInterrupt(void) {
@@ -180,7 +180,7 @@ namespace ENGINE::PSX {
 		printf("timeout while waiting for vsync! something has gone horribly wrong\n");
 	}
 
-	uint32_t *PSXRenderer::allocatePacket(int z, int numcommands) {
+	uint32_t *PSXRenderer::allocatePacket(uint32_t z, size_t numcommands) {
 		auto chain = getCurrentChain();
 		auto ptr   = chain->nextpacket;
 

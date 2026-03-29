@@ -34,6 +34,7 @@ int main(void) {
      
         g_app.curscene->update();  
         g_app.curscene->draw();  
+			
 // 		printf("time %llu\n", ENGINE::g_timerInstance.get()->getMS());		
 //		printf("fps%d\n", ENGINE::g_rendererInstance.get()->getFPS());
 #ifdef PLATFORM_PSX

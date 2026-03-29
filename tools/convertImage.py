@@ -174,41 +174,37 @@ def convertIndexedImage(
 ## Main
 
 def createParser() -> ArgumentParser:
-	parser = ArgumentParser(description = "Converts an image file into 4bpp or 8bpp", add_help = False)
+    parser = ArgumentParser(description="Converts an image file into 4bpp or 8bpp")
 
-	group = parser.add_argument_group("Tool options")
-	group.add_argument(
-		"-h", "--help",
-		action = "help",
-		help   = "Show this help message and exit"
-	)
+    parser.add_argument("input", help="Path to input image file")
+    parser.add_argument("imageOutput", help="Path to raw image data file to generate")
+    parser.add_argument("vram", help="Path to VRAM data file")
 
-	group = parser.add_argument_group("File paths")
-	group.add_argument("input", type = Image.open, help = "Path to input image file")
-	group.add_argument("imageOutput", type = FileType("wb"), help = "Path to raw image data file to generate")
-	group.add_argument("vram", type = FileType("r"), help = "Vram data")
-
-	return parser
-def convert_image(img_file, vram_file, image_output_file, force_stp: bool = False):
+    return parser
+	
+def convert_image(img_path: str, vram_path: str, output_path: str, force_stp: bool = False):
     """
-    Convert an image using the provided VRAM data and write to output file.
+    Convert an image using VRAM data and write to output file.
 
     Parameters:
-    - img_file: path to input image or PIL.Image.Image
-    - vram_file: file-like object with VRAM data (readable)
-    - image_output_file: file-like object for writing output (writable)
-    - force_stp: bool, whether to force semi-transparent pixels
+    - img_path: path to input image
+    - vram_path: path to VRAM text file
+    - output_path: path to output binary file
+    - force_stp: bool
     """
-    # Accept either a PIL image or a path
-    if isinstance(img_file, Image.Image):
-        input_image = img_file
-    else:
-        input_image = Image.open(img_file)
 
-    vram = vram_file.read().split()
+    # --- Load image ---
+    input_image = Image.open(img_path)
+
+    # --- Load VRAM ---
+    with open(vram_path, "r") as f:
+        vram = f.read().split()
+
     vram = [eval(value) for value in vram]
+
     bpp = vram[4]
 
+    # --- Image conversion ---
     try:
         image: Image.Image = quantizeImage(input_image, 2 ** bpp)
     except RuntimeError as err:
@@ -216,6 +212,7 @@ def convert_image(img_file, vram_file, image_output_file, force_stp: bool = Fals
 
     imageData, clutData = convertIndexedImage(image, force_stp)
 
+    # --- Header setup ---
     header = TexHeader()
     header.magic = int.from_bytes(b"XTEX", byteorder="little")
     info = TextureInfo()
@@ -229,7 +226,7 @@ def convert_image(img_file, vram_file, image_output_file, force_stp: bool = Fals
     if (vram[2] % 16) != 0:
         raise ValueError("CLUT alignment invalid")
     if (vram[2] + clutData.size) > 1024:
-        raise ValueError("Pallete clipping vram")
+        raise ValueError("Palette clipping vram")
 
     info.page = gp0_page(vram[0] // 64, vram[1] // 256, 0, colordepth)
     info.clut = gp0_clut(vram[2] // 16, vram[3])
@@ -243,11 +240,11 @@ def convert_image(img_file, vram_file, image_output_file, force_stp: bool = Fals
     header.clutsize = clutData.nbytes
     header.texsize = imageData.nbytes
 
-    image_output_file.write(header)
-    image_output_file.write(clutData)
-    image_output_file.write(imageData)
-
-    image_output_file.close()
+    # --- Write output ---
+    with open(output_path, "wb") as f:
+        f.write(header)
+        f.write(clutData)
+        f.write(imageData)
 
 def main():
     parser: ArgumentParser = createParser()
