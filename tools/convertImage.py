@@ -10,7 +10,7 @@ import numpy
 from numpy import ndarray
 from PIL   import Image
 from enum import IntEnum
-from common import TexHeader, TextureInfo
+from .common import TexHeader, TextureInfo
 
 class GP0BlendMode(IntEnum):
     GP0_BLEND_SEMITRANS = 0
@@ -183,70 +183,82 @@ def createParser() -> ArgumentParser:
 		help   = "Show this help message and exit"
 	)
 
-	group = parser.add_argument_group("Conversion options")
-	group.add_argument(
-		"-s", "--force-stp",
-		action = "store_true",
-		help   = \
-			"Set the semitransparency/blending flag on all pixels in the "
-			"output image (useful when using additive or subtractive blending)"
-	)
-
 	group = parser.add_argument_group("File paths")
 	group.add_argument("input", type = Image.open, help = "Path to input image file")
 	group.add_argument("imageOutput", type = FileType("wb"), help = "Path to raw image data file to generate")
 	group.add_argument("vram", type = FileType("r"), help = "Vram data")
 
 	return parser
+def convert_image(img_file, vram_file, image_output_file, force_stp: bool = False):
+    """
+    Convert an image using the provided VRAM data and write to output file.
+
+    Parameters:
+    - img_file: path to input image or PIL.Image.Image
+    - vram_file: file-like object with VRAM data (readable)
+    - image_output_file: file-like object for writing output (writable)
+    - force_stp: bool, whether to force semi-transparent pixels
+    """
+    # Accept either a PIL image or a path
+    if isinstance(img_file, Image.Image):
+        input_image = img_file
+    else:
+        input_image = Image.open(img_file)
+
+    vram = vram_file.read().split()
+    vram = [eval(value) for value in vram]
+    bpp = vram[4]
+
+    try:
+        image: Image.Image = quantizeImage(input_image, 2 ** bpp)
+    except RuntimeError as err:
+        raise RuntimeError(err.args[0])
+
+    imageData, clutData = convertIndexedImage(image, force_stp)
+
+    header = TexHeader()
+    header.magic = int.from_bytes(b"XTEX", byteorder="little")
+    info = TextureInfo()
+
+    header.vrampos[:] = [vram[0], vram[1]]
+    header.clutpos[:] = [vram[2], vram[3]]
+
+    width_divider = 2 if bpp == 8 else 4
+    colordepth = GP0ColorDepth.GP0_COLOR_8BPP if bpp == 8 else GP0ColorDepth.GP0_COLOR_4BPP
+
+    if (vram[2] % 16) != 0:
+        raise ValueError("CLUT alignment invalid")
+    if (vram[2] + clutData.size) > 1024:
+        raise ValueError("Pallete clipping vram")
+
+    info.page = gp0_page(vram[0] // 64, vram[1] // 256, 0, colordepth)
+    info.clut = gp0_clut(vram[2] // 16, vram[3])
+    info.u = (vram[0] % 64) * width_divider
+    info.v = vram[1] % 256
+    info.w = image.size[0]
+    info.h = image.size[1]
+    info.bpp = bpp
+
+    header.texinfo = info
+    header.clutsize = clutData.nbytes
+    header.texsize = imageData.nbytes
+
+    image_output_file.write(header)
+    image_output_file.write(clutData)
+    image_output_file.write(imageData)
+
+    image_output_file.close()
 
 def main():
-	parser: ArgumentParser = createParser()
-	args:   Namespace      = parser.parse_args()
+    parser: ArgumentParser = createParser()
+    args: Namespace = parser.parse_args()
 
-	vram = args.vram.read().split()
-	vram = [eval(value) for value in vram]
-	bpp = vram[4]
-
-	try:
-		image: Image.Image = quantizeImage(args.input, 2 ** bpp)
-	except RuntimeError as err:
-		parser.error(err.args[0])
-
-	imageData, clutData = convertIndexedImage(image, args.force_stp)
-
-	header = TexHeader()
-	header.magic = int.from_bytes(b"XTEX", byteorder="little")
-	info = TextureInfo()
-
-	header.vrampos[:] = [vram[0], vram[1]]
-	header.clutpos[:] = [vram[2], vram[3]]
-
-	width_divider = 2 if bpp == 8 else 4
-	colordepth = GP0ColorDepth.GP0_COLOR_8BPP if bpp == 8 else GP0ColorDepth.GP0_COLOR_4BPP
-	#vram = [x,y, palx, paly, bpp]
-	if (vram[2] % 16) != 0:
-		raise ValueError("CLUT alignment invalid")
-	if (vram[2] + clutData.size) > 1024:
-		raise ValueError("Pallete clipping vram")
-	
-	info.page   = gp0_page(vram[0] // 64, vram[1] // 256, 0, colordepth)
-	info.clut   = gp0_clut(vram[2] // 16, vram[3])
-	info.u      = (vram[0] %  64) * width_divider
-	info.v      = (vram[1] % 256)
-	info.w  = image.size[0]
-	info.h = image.size[1] 
-	info.bpp    = bpp
-
-	header.texinfo = info 
-	header.clutsize = clutData.nbytes
-	header.texsize = imageData.nbytes
-
-	file = args.imageOutput
-	file.write(header)
-	file.write(clutData)
-	file.write(imageData)
-
-	file.close()
+    convert_image(
+        img_file=args.input,
+        vram_file=args.vram,
+        image_output_file=args.imageOutput,
+        force_stp=getattr(args, "force_stp", False)
+    )
 
 if __name__ == "__main__":
 	main()

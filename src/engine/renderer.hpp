@@ -78,6 +78,15 @@ namespace ENGINE {
 #else
 	namespace GENERIC {
 			
+		struct GLShader {
+		public:
+			void init(const char *path, GLenum type);
+			uint32_t getId(void) {return id;}
+			void free(void) {glDeleteShader(id);}
+		private:
+			uint32_t id;
+		};
+
 		class GLRenderer : public Renderer {
 		public:
 			GLRenderer(void);
@@ -95,7 +104,11 @@ namespace ENGINE {
 	
 		private:
 			SDL_Window* window;
+			GLShader vertshader;
+			GLShader fragshader;
+			uint32_t shaderprog;
 		};
+
 	} 
 #endif
 }

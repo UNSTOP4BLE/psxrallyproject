@@ -1,9 +1,31 @@
 #include "../renderer.hpp"
+#include "../filesystem.hpp"
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
 #include <assert.h>
 
-namespace ENGINE::GENERIC {
+    namespace ENGINE::GENERIC {
+        
+    void GLShader::init(const char *path, GLenum type) {
+        ENGINE::File *f = ENGINE::g_fileSystemInstance.get()->findFile(path);
+        uint32_t fsize = f->getSize();
+
+        char* src = new char[fsize + 1]; // +1 for null terminator
+        f->read(src, fsize);
+        src[fsize] = '\0';
+
+        const char* ptr = src;
+
+        id = glCreateShader(type);
+        glShaderSource(id, 1, &ptr, NULL);
+        glCompileShader(id);
+
+        int success;
+        glGetShaderiv(id, GL_COMPILE_STATUS, &success);
+        assert(success);
+        delete[] src; // clean up
+        
+    }
 
     GLRenderer::GLRenderer(void) {
 
@@ -37,8 +59,22 @@ namespace ENGINE::GENERIC {
         SDL_GLContext glContext = SDL_GL_CreateContext(window);
         assert(glContext);
 
-        auto err = gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
+        int err;
+        err = gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
         assert(err);
+
+        // link shaders
+        vertshader.init("", GL_VERTEX_SHADER);
+        fragshader.init("", GL_FRAGMENT_SHADER);
+        shaderprog = glCreateProgram();
+        glAttachShader(shaderprog, vertshader.getId());
+        glAttachShader(shaderprog, fragshader.getId());
+        glLinkProgram(shaderprog);
+        // check for linking errors
+        glGetProgramiv(shaderprog, GL_LINK_STATUS, &err);
+        assert(err);
+        vertshader.free();
+        fragshader.free();
 
         setClearCol(64, 64, 64);
     }
