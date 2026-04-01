@@ -6,11 +6,11 @@ namespace ENGINE {
 
     Timer &Timer::instance() {
         static Timer *instance;
-        #ifdef PLATFORM_PSX
+#ifdef PLATFORM_PSX
         instance = new PSX::PSXTimer();
-        #else
+#else
         instance = new GENERIC::ChronoTimer();
-        #endif
+#endif
         return *instance;
     }
 
