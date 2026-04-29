@@ -130,4 +130,4 @@ namespace ENGINE::TEMPLATES {
     private:
         T* service_;
     };
-}
+} //namespace ENGINE::TEMPLATES

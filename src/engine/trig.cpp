@@ -41,4 +41,4 @@ namespace ENGINE::TRIG {
 
 		return (c >= 0) ? y : (-y);
 	}
-} //namespace TRIG
+} //namespace ENGINE::TRIG

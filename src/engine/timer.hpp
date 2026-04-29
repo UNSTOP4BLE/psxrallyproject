@@ -18,6 +18,7 @@ namespace ENGINE {
     extern TEMPLATES::ServiceLocator<Timer> g_timerInstance;
 
     //psx
+#ifdef PLATFORM_PSX
     namespace PSX {
         class PSXTimer : public Timer {
         public:
@@ -29,8 +30,8 @@ namespace ENGINE {
             uint64_t getT2_value(void); 
 
         };
-    }
-
+    } //namespace PSX
+#else
     namespace GENERIC {
         class ChronoTimer : public Timer {
         public:
@@ -38,6 +39,6 @@ namespace ENGINE {
             uint64_t getMS(void);
         private:
         };
-    }
-
-}
+    } //namespace GENERIC
+#endif
+} //namespace ENGINE

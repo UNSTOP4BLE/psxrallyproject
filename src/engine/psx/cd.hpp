@@ -4,8 +4,6 @@
 
 namespace ENGINE::PSX {
 
-    constexpr int SECTOR_SIZE = 2048;
-
     class CDRom {
     public:
         void issueCMD(uint8_t cmd, const uint8_t *arg, int argLength);
@@ -51,4 +49,4 @@ namespace ENGINE::PSX {
     };
 
     extern TEMPLATES::ServiceLocator<CDRom> g_CDInstance;
-}
+} //namespace ENGINE::PSX 

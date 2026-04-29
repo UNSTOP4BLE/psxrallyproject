@@ -4,4 +4,4 @@ namespace ENGINE::PSX {
 
     void initIRQ(void);
 
-} 
+} //namespace ENGINE::PSX 

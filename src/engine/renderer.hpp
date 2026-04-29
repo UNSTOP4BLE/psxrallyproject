@@ -78,7 +78,7 @@ namespace ENGINE {
 			}
 
 		};
-	} 
+	} //namespace PSX
 #else
 	namespace GENERIC {
 			
@@ -115,6 +115,6 @@ namespace ENGINE {
 			uint32_t shaderprog;
 		};
 
-	} 
+	} //namespace GENERIC
 #endif
-}
+} //namespace ENGINE

@@ -1,5 +1,6 @@
 #include "../renderer.hpp"
 #include "../filesystem.hpp"
+#include "../constants.hpp"
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
 #include <assert.h>
@@ -41,8 +42,8 @@ namespace ENGINE::GENERIC {
         SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 #endif
 
-        scrw = ENGINE::COMMON::SCREEN_WIDTH;
-        scrh = ENGINE::COMMON::SCREEN_HEIGHT;
+        scrw = ENGINE::CONST::SCREEN_WIDTH;
+        scrh = ENGINE::CONST::SCREEN_HEIGHT;
 
         // Create SDL window with OpenGL
         window = SDL_CreateWindow(
@@ -142,4 +143,4 @@ namespace ENGINE::GENERIC {
 	//void GLRenderer::drawTexQuad(const TextureInfo &tex, ENGINE::COMMON::RECT32 &pos, uint32_t z, uint32_t col) {}
 	//void GLRenderer::drawModel(const Model *model, const FIXED::Vector12 &pos, FIXED::Vector12 rot) {}
 
-}
+} //namespace ENGINE::GENERIC 

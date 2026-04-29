@@ -1,9 +1,11 @@
 #include "app.hpp"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "engine/filesystem.hpp"
+#include "engine/assetmanager.hpp"
 #include "engine/timer.hpp"
 #include "engine/renderer.hpp"
 
@@ -22,11 +24,13 @@ int main(void) {
 	ENGINE::PSX::g_CDInstance.provide( &ENGINE::PSX::CDRom::instance());
 #endif
 	ENGINE::g_fileSystemInstance.provide( &ENGINE::FileSystem::instance()); //must be done after initializing cd drive
+	ENGINE::g_assetManagerInstance.provide( &ENGINE::AssetManager::instance());
 
 	ENGINE::g_timerInstance.provide( &ENGINE::Timer::instance());
 	ENGINE::g_rendererInstance.provide( &ENGINE::Renderer::instance());
 
     g_app.curscene.reset(new TestSCN());
+
 	while(1) {
 		ENGINE::g_rendererInstance.get()->beginFrame();
 		

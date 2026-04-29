@@ -11,7 +11,6 @@ namespace ENGINE::PSX {
 	static void waitForDMADone(void);
 	static void clearOT(uint32_t *table, int numentries);
 	static void sendLinkedList(const void *data);
-
 		
 	PSXRenderer::PSXRenderer(void) {
 		GP1VideoMode mode;
@@ -223,4 +222,4 @@ namespace ENGINE::PSX {
 			| DMA_CHCR_ENABLE;
 	}
 
-}
+} //namespace ENGINE::PSX 

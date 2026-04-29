@@ -123,7 +123,7 @@ namespace ENGINE {
                 uint8_t  _unused5[653];            
             };
             static_assert(sizeof(PVD) == 2048, "PVD must be exactly 2048 bytes");
-        }
+        } //namespace ISO9660
         
         class PSXFile : public File {
             friend class PSXFileSystem;
@@ -147,7 +147,7 @@ namespace ENGINE {
             const ISO9660::Entry* rootdir;
             ISO9660::PVD pvd;
         };
-    } 
+    } //namespace PSX
 #else 
     namespace GENERIC {
 
@@ -167,6 +167,6 @@ namespace ENGINE {
             GenericFileSystem(void);	
             File *findFile(const char *path); 
         };
-    }
+    } //namespace GENERIC
 #endif
-}
+} //namespace ENGINE

@@ -21,10 +21,10 @@ namespace ENGINE {
             PSXAudio(void);	
         private:
         };
-    } 
+    } //namespace PSX
 #else
     namespace GENERIC {
         
-    }
+    } //namespace GENERIC
 #endif
-}
+} //namespace ENGINE

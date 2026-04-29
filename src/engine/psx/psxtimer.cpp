@@ -26,4 +26,4 @@ namespace ENGINE::PSX {
         return uint64_t(TIMER_VALUE(2) & 0xffff) | (uint64_t(t2irqcount) << 16);
     };
 
-} 
+} //namespace ENGINE::PSX 
