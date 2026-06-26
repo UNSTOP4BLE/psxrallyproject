@@ -4,6 +4,8 @@
 #include "templates.hpp"
 
 #include <stdint.h>
+#include <assert.h>
+
 
 namespace ENGINE {
 
@@ -33,7 +35,7 @@ namespace ENGINE {
         int refcount;
         const Asset* ptr;
 
-        AssetEntry() : refcount(1), ptr(nullptr) {}
+        AssetEntry() : refcount(0), ptr(nullptr) {}
         ~AssetEntry() {
             if (ptr) 
                 delete ptr;
@@ -59,13 +61,14 @@ namespace ENGINE {
         void release(uint32_t id);
     private:
         AssetEntry loadedassets[ENGINE::CONST::ASSET_MAX];
+        //uint8_t: allows for 256 unique assets max, limited in ENGINE::CONST::ASSET_MAX
+        const uint8_t findAsset(uint32_t id);
+        const uint8_t findEmptySlot(void);
 
         const Asset* _get(const char *path, const Asset* (*loader)(const char *));
         const Asset* _get(uint32_t id) {
-            for (int i = 0; i < ENGINE::CONST::ASSET_MAX; i++)
-                if (id == loadedassets[i].ptr->getID())
-                    return loadedassets[i].ptr;
-        };
+            return loadedassets[findAsset(id)].ptr;
+        }
     };
 
     extern ENGINE::TEMPLATES::ServiceLocator<AssetManager> g_assetManagerInstance;

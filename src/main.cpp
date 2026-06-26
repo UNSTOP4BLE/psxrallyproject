@@ -30,6 +30,9 @@ int main(void) {
 	ENGINE::g_rendererInstance.provide( &ENGINE::Renderer::instance());
 
     g_app.curscene.reset(new TestSCN());
+	
+	const ENGINE::TestAsset* asset = ENGINE::g_assetManagerInstance.get()->get<ENGINE::TestAsset>("path/to/file");
+	printf("%d\n", asset->testvar);
 
 	while(1) {
 		ENGINE::g_rendererInstance.get()->beginFrame();
